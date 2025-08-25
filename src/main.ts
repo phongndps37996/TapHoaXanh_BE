@@ -24,8 +24,8 @@ async function bootstrap() {
     credentials: true,
   });
   const config = new DocumentBuilder()
-    .setTitle('Tạp Hóa Xanh')
-    .setDescription('API của Tạp Hóa Xanh')
+    .setTitle('Tên API')
+    .setDescription('Mô tả API')
     .setVersion('1.0')
     .addBearerAuth({
       type: 'http',
