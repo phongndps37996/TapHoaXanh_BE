@@ -1,5 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ICartItemService } from '../cart_item/interfaces/icart_item-service.interface';
+import { OrderItemService } from '../order_item/order_item.service';
+import { v4 as uuidv4 } from 'uuid';
 import { IUsersRepository } from '../users/interfaces/iusers-repository.interface';
+import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -14,18 +18,33 @@ export class OrderService {
 
     @Inject(IUsersRepository) // 👈 inject đúng token
     private readonly userRepository: IUsersRepository,
+
+    private readonly cartItemService: ICartItemService,
+
+    private readonly orderItemService: OrderItemService,
   ) {}
 
   // Order CRUD operations
-  async create(createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(createOrderDto: CreateOrderDto, userId: number): Promise<Order> {
+    // Tạo order_code tự động bằng UUID
+    const orderCode = this.generateOrderCode();
+
     const order = this.orderRepository.create({
       ...createOrderDto,
-      status: createOrderDto.status || PaymentStatus.PENDING,
+      order_code: orderCode,
+      status: PaymentStatus.PENDING,
     });
-    const findUser = await this.userRepository.findById(createOrderDto.userId);
+    const findUser = await this.userRepository.findById(userId);
     if (!findUser) throw new NotFoundException('User này không tồn tại');
     order.user = findUser;
     return this.orderRepository.save(order);
+  }
+
+  // Tạo order_code tự động bằng UUID
+  private generateOrderCode(): string {
+    const uuid = uuidv4();
+    // Lấy 8 ký tự đầu của UUID và thêm prefix ORD
+    return `${uuid.toUpperCase()}`;
   }
 
   async findAll(): Promise<Order[]> {
@@ -49,309 +68,69 @@ export class OrderService {
     if (result.affected === 0) throw new NotFoundException(`Order with id ${id} not found`);
   }
 
-  // Payment operations
-  // async createCharge(createPaymentDto: CreatePaymentDto): Promise<PaymentResponseDto> {
-  //   // Tính tổng tiền các sản phẩm
-  //   let total = 0;
-  //   if (Array.isArray((createPaymentDto as any).orderItems)) {
-  //     for (const item of (createPaymentDto as any).orderItems) {
-  //       total += (item.unit_price || 0) * (item.quantity || 1);
-  //     }
-  //   } else {
-  //     total = (createPaymentDto as any).amount || 0;
-  //   }
-
-  //   // Áp dụng voucher nếu có (hỗ trợ cả giảm giá và freeship)
-  //   let discount = 0;
-  //   let freeship = 0;
-  //   let voucherInfo = null;
-  //   const shippingFee = (createPaymentDto as any).shippingFee || 0;
-  //   if ((createPaymentDto as any).voucher) {
-  //     voucherInfo = (createPaymentDto as any).voucher;
-  //     if (voucherInfo && total >= (voucherInfo.min_order_value || 0)) {
-  //       if (voucherInfo.type === VoucherType.DISCOUNT) {
-  //         discount = Math.min(voucherInfo.max_discount || 0, total * 0.1);
-  //       } else if (voucherInfo.type === VoucherType.FREESHIP) {
-  //         freeship = Math.min(voucherInfo.max_discount || 0, shippingFee);
-  //       }
-  //     }
-  //   }
-  //   const finalAmount = total - discount - freeship + (shippingFee - freeship);
-
-  //   // Tạo order mới
-  //   const order = this.orderRepository.create({
-  //     total_price: total,
-  //     discount,
-  //     freeship,
-  //     shipping_fee: shippingFee,
-  //     quantity: (createPaymentDto as any).orderItems?.length || 1,
-  //     images: (createPaymentDto as any).orderItems?.[0]?.image || '',
-  //     comment: createPaymentDto.description || 'Thanh toan qua cổng thanh toán',
-  //     payment_amount: finalAmount,
-  //     payment_description: createPaymentDto.description,
-  //     payment_method: createPaymentDto.payment_method,
-  //     payment_status: PaymentStatus.PENDING,
-  //     currency: createPaymentDto.currency || 'VND',
-  //   });
-
-  //   const savedOrder = await this.orderRepository.save(order);
-
-  //   // Tạo thanh toán theo phương thức
-  //   switch (createPaymentDto.payment_method) {
-  //     case PaymentMethod.MOMO:
-  //       return this.createMomoPayment(savedOrder);
-  //     case PaymentMethod.VNPAY:
-  //       return this.createVnpayPayment(savedOrder);
-  //     case PaymentMethod.BANK_TRANSFER:
-  //       return this.createBankTransferPayment(savedOrder, finalAmount);
-  //     default:
-  //       throw new InternalServerErrorException('Unsupported payment method');
-  //   }
-  // }
-
-  // private async createMomoPayment(order: Order): Promise<PaymentResponseDto> {
-  //   const momoConfig = {
-  //     partnerCode: process.env.MOMO_PARTNER_CODE || 'MOMO',
-  //     accessKey: process.env.MOMO_ACCESS_KEY || 'accessKey',
-  //     secretKey: process.env.MOMO_SECRET_KEY || 'secretKey',
-  //     endpoint: process.env.MOMO_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api/create',
-  //   };
-
-  //   const requestId = `${order.id}-${Date.now()}`;
-  //   const orderId = `${order.id}-${Date.now()}`;
-  //   const amount = order.payment_amount || 0;
-  //   const orderInfo = order.payment_description || 'Thanh toan don hang';
-  //   const redirectUrl = process.env.MOMO_REDIRECT_URL || 'http://localhost:3000/payment/return';
-  //   const ipnUrl = process.env.MOMO_IPN_URL || 'http://localhost:3000/payment/ipn';
-  //   const requestType = 'captureWallet';
-
-  //   const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
-
-  //   const signature = crypto.createHmac('sha256', momoConfig.secretKey).update(rawSignature).digest('hex');
-
-  //   const requestBody = {
-  //     partnerCode: momoConfig.partnerCode,
-  //     partnerName: 'Test',
-  //     storeId: 'MomoTestStore',
-  //     requestId: requestId,
-  //     amount: amount,
-  //     orderId: orderId,
-  //     orderInfo: orderInfo,
-  //     redirectUrl: redirectUrl,
-  //     ipnUrl: ipnUrl,
-  //     lang: 'vi',
-  //     requestType: requestType,
-  //     autoCapture: true,
-  //     extraData: '',
-  //     signature: signature,
-  //   };
-
-  //   try {
-  //     const response = await axios.post(momoConfig.endpoint, requestBody, {
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //     });
-
-  //     const data = response.data as any;
-
-  //     await this.logRepo.save({
-  //       orderId: orderId,
-  //       gatewayTransactionId: data.resultCode === 0 ? data.payUrl : '',
-  //       paymentMethod: 'momo',
-  //       rawData: data,
-  //       status: data.resultCode === 0 ? PaymentStatus.SUCCESS : PaymentStatus.FAIL,
-  //       reason: data.message,
-  //     });
-
-  //     return {
-  //       paymentUrl: data.payUrl,
-  //       paymentMethod: 'momo',
-  //       status: data.resultCode === 0 ? 'success' : 'fail',
-  //       message: data.message,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException('Failed to create MoMo payment');
-  //   }
-  // }
-
-  // private createVnpayPayment(order: Order): PaymentResponseDto {
-  //   const vnpConfig = {
-  //     tmnCode: process.env.VNP_TMNCODE,
-  //     secretKey: process.env.VNP_HASH_SECRET,
-  //     url: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  //     returnUrl: process.env.VNP_RETURN_URL,
-  //   };
-
-  //   const date = new Date();
-  //   const createDate = date
-  //     .toISOString()
-  //     .replace(/[-T:.Z]/g, '')
-  //     .slice(0, 14);
-  //   const txnRef = `${order.id}-${Date.now()}`;
-  //   const amount = (order.payment_amount || 0) * 100;
-
-  //   const params: Record<string, any> = {
-  //     vnp_Version: '2.1.0',
-  //     vnp_Command: 'pay',
-  //     vnp_TmnCode: vnpConfig.tmnCode,
-  //     vnp_Locale: 'vn',
-  //     vnp_CurrCode: 'VND',
-  //     vnp_TxnRef: txnRef,
-  //     vnp_OrderInfo: order.payment_description,
-  //     vnp_OrderType: 'billpayment',
-  //     vnp_Amount: amount,
-  //     vnp_ReturnUrl: vnpConfig.returnUrl,
-  //     vnp_IpAddr: '127.0.0.1',
-  //     vnp_CreateDate: createDate,
-  //   };
-
-  //   const sortedParams = Object.keys(params)
-  //     .sort()
-  //     .reduce((acc: Record<string, any>, key: string) => {
-  //       acc[key] = params[key];
-  //       return acc;
-  //     }, {});
-
-  //   const signData = qs.stringify(sortedParams, { encode: false });
-  //   const secureHash = crypto
-  //     .createHmac('sha512', vnpConfig.secretKey || '')
-  //     .update(signData)
-  //     .digest('hex');
-
-  //   const paymentUrl = `${vnpConfig.url}?${signData}&vnp_SecureHash=${secureHash}`;
-
-  //   this.logRepo.save({
-  //     orderId: txnRef,
-  //     gatewayTransactionId: '',
-  //     paymentMethod: 'vnpay',
-  //     rawData: params,
-  //     status: PaymentStatus.PENDING,
-  //   });
-
-  //   return {
-  //     paymentUrl,
-  //     paymentMethod: 'vnpay',
-  //     status: 'pending',
-  //   };
-  // }
-
-  // private async createBankTransferPayment(order: Order, finalAmount?: number): Promise<PaymentResponseDto> {
-  //   // Thông tin tài khoản ngân hàng của bạn - có thể đưa vào environment variables
-  //   const bankInfo = {
-  //     bankName: process.env.BANK_NAME || 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)',
-  //     accountNumber: process.env.BANK_ACCOUNT_NUMBER || '1234567890',
-  //     accountName: process.env.BANK_ACCOUNT_NAME || 'NGUYEN VAN A',
-  //   };
-
-  //   // Tạo nội dung chuyển khoản với mã đơn hàng
-  //   const transferContent = `TapHoaXanh ${order.id} ${order.payment_description || 'Thanh toan don hang'}`.substring(
-  //     0,
-  //     50,
-  //   );
-
-  //   // Số tiền cuối cùng đã tính giảm giá
-  //   const amount = finalAmount !== undefined ? finalAmount : order.payment_amount || 0;
-
-  //   // Tạo QR code URL (có thể sử dụng API của ngân hàng hoặc service tạo QR)
-  //   const qrCodeData = `${bankInfo.accountNumber}|${bankInfo.accountName}|${amount}|${transferContent}`;
-  //   const qrCodeUrl = await this.generateQRCode(qrCodeData, amount, bankInfo.accountNumber, transferContent);
-
-  //   // Log payment info
-  //   await this.logRepo.save({
-  //     orderId: order.id.toString(),
-  //     gatewayTransactionId: `BANK_${order.id}_${Date.now()}`,
-  //     paymentMethod: 'bank_transfer',
-  //     rawData: {
-  //       bankInfo,
-  //       amount,
-  //       transferContent,
-  //       qrCode: qrCodeUrl,
-  //     },
-  //     status: PaymentStatus.PENDING,
-  //     reason: 'Waiting for bank transfer confirmation',
-  //   });
-
-  //   const bankTransferInfo: BankTransferInfoDto = {
-  //     bankName: bankInfo.bankName,
-  //     accountNumber: bankInfo.accountNumber,
-  //     accountName: bankInfo.accountName,
-  //     qrCode: qrCodeUrl,
-  //     amount,
-  //     transferContent,
-  //     note: `Vui lòng chuyển khoản đúng nội dung: "${transferContent}" để được xử lý tự động`,
-  //   };
-
-  //   return {
-  //     bankTransferInfo,
-  //     paymentMethod: 'bank_transfer',
-  //     status: 'pending',
-  //     message: 'Vui lòng thực hiện chuyển khoản theo thông tin bên dưới',
-  //   };
-  // }
-
-  // private async generateQRCode(data: string, amount: number, accountNumber: string, content: string): Promise<string> {
-  //   // Tạo QR code cho Vietcombank (có thể thay đổi theo ngân hàng của bạn)
-  //   // Format theo chuẩn VietQR
-  //   const bankCode = '970436'; // Mã ngân hàng Vietcombank
-  //   const qrString = `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact2.jpg?amount=${amount}&addInfo=${encodeURIComponent(content)}`;
-  //   return qrString;
-  // }
-
-  // async confirmBankTransfer(confirmDto: ConfirmBankTransferDto): Promise<Order> {
-  //   const order = await this.orderRepository.findOneBy({ id: confirmDto.paymentId });
-  //   if (!order) {
-  //     throw new NotFoundException(`Order with id ${confirmDto.paymentId} not found`);
-  //   }
-
-  //   if (order.payment_method !== PaymentMethod.BANK_TRANSFER) {
-  //     throw new InternalServerErrorException('This order is not a bank transfer payment');
-  //   }
-
-  //   // Cập nhật trạng thái thanh toán
-  //   order.payment_status = confirmDto.status || PaymentStatus.SUCCESS;
-  //   order.transaction_id = confirmDto.transactionId;
-
-  //   // Log confirmation
-  //   await this.logRepo.save({
-  //     orderId: order.id.toString(),
-  //     gatewayTransactionId: confirmDto.transactionId,
-  //     paymentMethod: 'bank_transfer_confirm',
-  //     rawData: {
-  //       transactionId: confirmDto.transactionId,
-  //       transactionImage: confirmDto.transactionImage,
-  //       note: confirmDto.note,
-  //       confirmedAt: new Date(),
-  //     },
-  //     status: confirmDto.status === PaymentStatus.SUCCESS ? PaymentStatus.SUCCESS : PaymentStatus.FAIL,
-  //     reason: confirmDto.note || 'Bank transfer confirmed',
-  //   });
-
-  //   return this.orderRepository.save(order);
-  // }
-
-  // // Payment-related methods that work with Order
-  // async findAllPayments(): Promise<Order[]> {
-  //   return this.orderRepository.find({
-  //     where: { payment_method: PaymentMethod.BANK_TRANSFER },
-  //     relations: ['users'],
-  //   });
-  // }
-
-  async findOnePayment(id: number): Promise<Order> {
-    return this.orderRepository.findOnePayment(id);
-  }
-
-  async updatePayment(id: number, updateData: Partial<Order>): Promise<Order> {
-    return this.orderRepository.updatePayment(id, updateData);
-  }
-
-  async removePayment(id: number): Promise<void> {
-    const result = await this.orderRepository.delete(id);
-    if (result.affected === 0) throw new NotFoundException(`Order with id ${id} not found`);
-  }
-
   async countNumberOfOrder(): Promise<number> {
     return this.orderRepository.countNumberOfOrder();
+  }
+
+  // src/order/order.service.t
+  // Tạo order từ cart items được chọn
+  async createOrderFromCart(createOrderDto: CreateOrderFromCartDto, userId: number): Promise<Order> {
+    // 1. Lấy cart items được chọn
+    const cartItems = await this.cartItemService.findByIds(createOrderDto.cartItemIds, userId);
+
+    // 2. Validate cart items
+    if (cartItems.length === 0) {
+      throw new BadRequestException('Không có sản phẩm nào được chọn');
+    }
+
+    // 3. Tính tổng tiền
+    let totalPrice = 0;
+    const orderItems: {
+      quantity: number;
+      unit_price: number;
+      productVariant: any;
+    }[] = [];
+
+    for (const cartItem of cartItems) {
+      const itemTotal = cartItem.price * cartItem.quantity;
+      totalPrice += itemTotal;
+
+      // Tạo order item
+      orderItems.push({
+        quantity: cartItem.quantity,
+        unit_price: cartItem.price,
+        productVariant: cartItem.product_variant,
+      });
+    }
+
+    // 6. Tạo order
+    const order = this.orderRepository.create({
+      total_price: totalPrice,
+      note: createOrderDto.note,
+      order_code: this.generateOrderCode(),
+      status: PaymentStatus.PENDING,
+    });
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new NotFoundException('User này không tồn tại');
+    order.user = user;
+
+    // 5. Lưu order
+    const savedOrder = await this.orderRepository.save(order);
+
+    // 6. Tạo order items
+    for (const item of orderItems) {
+      await this.orderItemService.create({
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        orderId: savedOrder.id,
+        productVariantId: item.productVariant.id,
+      });
+    }
+
+    // 7. Xóa cart items đã thanh toán
+    await this.cartItemService.removeByIds(createOrderDto.cartItemIds, userId);
+
+    return savedOrder;
   }
 }

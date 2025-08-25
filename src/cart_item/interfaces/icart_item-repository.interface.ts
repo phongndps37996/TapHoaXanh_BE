@@ -7,4 +7,6 @@ export abstract class ICartItemRepository {
   abstract findOne(id: number): Promise<CartItem | null>;
   abstract resetAutoIncrement(): Promise<void>;
   abstract findAll(): Promise<CartItem[]>;
+  abstract findByIds(ids: number[], userId: number): Promise<CartItem[]>;
+  abstract removeByIds(ids: number[], userId: number): Promise<void>;
 }

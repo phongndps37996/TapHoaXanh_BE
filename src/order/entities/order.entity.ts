@@ -13,7 +13,7 @@ export class Order extends AbstractEntity<Order> {
   @Column()
   note?: string;
 
-  @Column()
+  @Column({ unique: true })
   order_code!: string;
 
   @Column()

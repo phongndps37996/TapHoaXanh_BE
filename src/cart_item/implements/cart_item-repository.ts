@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ICartItemRepository } from '../interfaces/icart_item-repository.interface';
 import { CartItem } from '../entities/cart_item.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, In } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -35,6 +35,24 @@ export class CartItemRepository implements ICartItemRepository {
       relations: ['cart', 'product_variant'],
     });
   }
+
+  async findByIds(ids: number[], userId: number): Promise<CartItem[]> {
+    // Lấy cart items theo IDs và đảm bảo thuộc về user
+    const items = await this._cartItemRepository.find({
+      where: { id: In(ids) },
+      relations: ['cart', 'product_variant', 'cart.user'],
+    });
+    return items.filter((item) => item.cart.user.id === userId);
+  }
+
+  async removeByIds(ids: number[], userId: number): Promise<void> {
+    // Xóa nhiều cart items theo IDs và đảm bảo thuộc về user
+    const items = await this.findByIds(ids, userId);
+    for (const item of items) {
+      await this.remove(item);
+    }
+  }
+
   async resetAutoIncrement(): Promise<void> {
     await this.dataSource.query('ALTER TABLE cart_item AUTO_INCREMENT = 1');
   }

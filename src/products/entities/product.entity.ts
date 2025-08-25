@@ -2,7 +2,6 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { Brand } from '../../brand/entities/brand.entity';
 import { Category } from '../../category/entities/category.entity';
 import { AbstractEntity } from '../../database/database.entity';
-import { OrderItem } from '../../order_item/entities/order_item.entity';
 import { ProductImage } from '../../product-images/entities/product-image.entity';
 import { ProductVariant } from '../../product-variant/entities/product-variant.entity';
 import { Rating } from '../../rating/entities/rating.entity';
@@ -56,9 +55,6 @@ export class Product extends AbstractEntity<Product> {
   @ManyToOne(() => Brand, (brand) => brand.product)
   @JoinColumn({ name: 'brand_id' })
   brand!: Brand;
-
-  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
-  orderItem!: OrderItem[];
 
   @OneToMany(() => Rating, (rating) => rating.product)
   rating!: Rating[];

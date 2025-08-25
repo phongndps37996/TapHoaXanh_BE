@@ -1,10 +1,14 @@
-import { Controller, Delete, Get, Param } from '@nestjs/common';
+import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
 import { ICartItemService } from './interfaces/icart_item-service.interface';
+import { JwtGuard } from '../auth/guards/jwt.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('cart-item')
 export default class CartItemController {
   constructor(private readonly cartItemService: ICartItemService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(JwtGuard)
   @Get()
   async findAll() {
     return await this.cartItemService.findAll();
