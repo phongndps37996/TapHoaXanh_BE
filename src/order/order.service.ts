@@ -133,4 +133,12 @@ export class OrderService {
 
     return savedOrder;
   }
+
+  async getTotalRevenueSuccess() {
+    return await this.orderRepository.getTotalRevenueSuccess();
+  }
+
+  async getMonthlyRevenueSuccess(year: number) {
+    return await this.orderRepository.getMonthlyRevenueSuccess(year);
+  }
 }

@@ -75,4 +75,32 @@ export class ProductRepository extends BaseRepository<Product> {
       },
     };
   }
+
+  async getLatestProducts(): Promise<Product[]> {
+    return this.productRepository.createQueryBuilder('product').orderBy('product.id', 'DESC').limit(10).getMany();
+  }
+
+  async getDetailProduct(slug: string) {
+    return await this.productRepository
+      .createQueryBuilder('p')
+      .innerJoin('p.variants', 'pv') // quan hệ Product -> ProductVariant
+      .leftJoin('p.image', 'pi2') // quan hệ Product -> ProductImage
+      .select([
+        'pv.variant_name AS variant_name',
+        'pv.image_url AS variant_image',
+        'p.description AS description',
+        'pi2.image_url AS product_image',
+        'pv.price_modifier AS price_modifier',
+      ])
+      .where('p.slug LIKE :slug', { slug: `%${slug}%` })
+      .getRawMany();
+  }
+
+  async getTopPurchased(limit: number): Promise<Product[]> {
+    return this.productRepository
+      .createQueryBuilder('product')
+      .orderBy('product.purchase', 'DESC')
+      .limit(limit)
+      .getMany();
+  }
 }

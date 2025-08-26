@@ -44,6 +44,9 @@ export class ProductsService {
     return await this.productRepository.findAll();
   }
 
+  async getLatestProducts() {
+    return await this.productRepository.getLatestProducts();
+  }
   // show sp theo danh muc
   async findByCategory(categoryId: number) {
     const existCategory = await this.categoryRepository.findById(categoryId);
@@ -116,5 +119,13 @@ export class ProductsService {
   }
   async filterProducts(query: ProductFilterDto) {
     return this.productRepository.filterProducts(query);
+  }
+
+  async getDetailProduct(slug: string) {
+    return await this.productRepository.getDetailProduct(slug);
+  }
+
+  async getTopPurchasedProducts(limit: number) {
+    return this.productRepository.getTopPurchased(limit);
   }
 }

@@ -111,4 +111,33 @@ export class OrderRepository extends BaseRepository<Order> {
   async findByOrderCode(orderCode: string): Promise<Order | null> {
     return await this.orderRepository.findOneBy({ order_code: orderCode });
   }
+
+  async getTotalRevenueSuccess(): Promise<number> {
+    const result = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('SUM(order.total_price)', 'total')
+      .where('order.status = :status', { status: PaymentStatus.SUCCESS })
+      .getRawOne<{ total: string | null }>();
+
+    // Nếu không có kết quả thì trả về 0
+    return result?.total ? Number(result.total) : 0;
+  }
+
+  async getMonthlyRevenueSuccess(year: number): Promise<number[]> {
+    const rows = await this.orderRepository
+      .createQueryBuilder('o')
+      .select('MONTH(o.createdAt)', 'month')
+      .addSelect('SUM(o.total_price)', 'total')
+      .where('o.status = :status', { status: PaymentStatus.SUCCESS })
+      .andWhere('YEAR(o.createdAt) = :year', { year })
+      .groupBy('MONTH(o.createdAt)')
+      .orderBy('MONTH(o.createdAt)', 'ASC')
+      .getRawMany<{ month: number; total: string }>();
+
+    const monthly = Array(12).fill(0);
+    for (const r of rows) {
+      monthly[Number(r.month) - 1] = Number(r.total);
+    }
+    return monthly;
+  }
 }

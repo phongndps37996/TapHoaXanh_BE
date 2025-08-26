@@ -26,10 +26,10 @@ export class Voucher extends AbstractEntity<Voucher> {
   @Column()
   end_date!: Date;
 
-  @Column({ type: 'enum', enum: VoucherType })
+  @Column({ type: 'enum', enum: VoucherType, nullable: true })
   type?: VoucherType;
 
-  @Column()
+  @Column({ nullable: true })
   value!: number;
 
   @ManyToOne(() => Order, (order) => order.voucher)

@@ -7,11 +7,13 @@ import { CategoriesModule } from '../category/categories.module';
 import { BrandModule } from '../brand/brand.module';
 import { ProductRepository } from './products.repository';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product]), CategoriesModule, BrandModule, CloudinaryModule],
+  imports: [TypeOrmModule.forFeature([Product]), CategoriesModule, BrandModule, CloudinaryModule, AuthModule],
   controllers: [ProductsController],
-  providers: [ProductsService, ProductRepository],
+  providers: [ProductsService, ProductRepository, IsAdminGuard],
   exports: [ProductsService, ProductRepository],
 })
 export class ProductsModule {}

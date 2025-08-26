@@ -1,10 +1,10 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
-import { RegisterAuthDto } from './dto/register.dto';
-import { LoginAuthDto } from './dto/login.dto';
-import { ForgotPasswordAuthDto } from './dto/forgot-password.dto';
-import { IAuthService } from './interfaces/iauth-service.interface';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ForgotPasswordAuthDto } from './dto/forgot-password.dto';
+import { LoginAuthDto } from './dto/login.dto';
+import { RegisterAuthDto } from './dto/register.dto';
 import { JwtGuard } from './guards/jwt.guard';
+import { IAuthService } from './interfaces/iauth-service.interface';
 
 @Controller('auth')
 export class AuthController {

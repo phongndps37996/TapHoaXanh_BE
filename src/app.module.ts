@@ -13,12 +13,12 @@ import { DatabaseModule } from './database/database.module';
 import { NewsModule } from './news/news.module';
 import { OrderModule } from './order/order.module';
 import { OrderItemModule } from './order_item/order_item.module';
+import { PaymentModule } from './payment/payment.module';
 import { ProductImagesModule } from './product-images/product-images.module';
 import { ProductVariantModule } from './product-variant/product-variant.module';
 import { ProductsModule } from './products/products.module';
 import { RatingModule } from './rating/rating.module';
 import { UsersModule } from './users/users.module';
-import { PaymentModule } from './payment/payment.module';
 import { VoucherModule } from './voucher/voucher.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 
@@ -50,11 +50,6 @@ import { WishlistModule } from './wishlist/wishlist.module';
     PaymentModule,
   ],
   controllers: [],
-  providers: [
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtGuard,
-    // },
-  ],
+  providers: [],
 })
 export class AppModule {}

@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Req } from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 
 @Controller('order')
 export class OrderController {
@@ -30,6 +30,17 @@ export class OrderController {
   @Get()
   findAll() {
     return this.orderService.findAll();
+  }
+
+  @Get('/revenue')
+  getTotalRevenueSuccess() {
+    return this.orderService.getTotalRevenueSuccess();
+  }
+
+  @Get('/revenue-month')
+  getMonthlyRevenueSuccess(@Query('year') year?: string) {
+    const y = Number(year) || new Date().getFullYear();
+    return this.orderService.getMonthlyRevenueSuccess(y);
   }
 
   @Get('/search')
