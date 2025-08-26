@@ -12,9 +12,9 @@ export class CartItemService implements ICartItemService {
     @Inject(ICartItemRepository)
     private readonly _cartItemRepository: ICartItemRepository,
     private readonly _productRepository: ProductRepository,
+    @Inject(ProductVariantRepository)
     private readonly _productVariantRepository: ProductVariantRepository,
   ) {}
-
   async addOrUpdateCartItem(cart: Cart, productId: number, quantity: number): Promise<CartItem> {
     // Validate quantity - bắt lỗi khi quantity = 0
     if (quantity <= 0) {

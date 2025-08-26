@@ -5,14 +5,12 @@ import { ForgotPasswordAuthDto } from './dto/forgot-password.dto';
 import { IAuthService } from './interfaces/iauth-service.interface';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { JwtGuard } from './guards/jwt.guard';
-import { Public } from '../../public.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: IAuthService) {}
 
   @Post('register')
-  @Public()
   async register(@Body() dto: RegisterAuthDto) {
     return this.authService.register(dto);
   }
@@ -20,7 +18,6 @@ export class AuthController {
   @ApiOperation({
     summary: 'Đăng nhập',
   })
-  @Public()
   @Post('login')
   async login(@Body() dto: LoginAuthDto) {
     return this.authService.login(dto.email, dto.password);
