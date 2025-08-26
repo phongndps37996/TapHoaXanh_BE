@@ -10,8 +10,12 @@ export class CreateCategoryDto {
   @IsNotEmpty({ message: 'Slug không được để trống' })
   slug?: string;
 
-  @ApiProperty({ example: 'linkImage' })
-  image_url!: string;
+  @ApiProperty({
+    description: 'File ảnh cần upload',
+    type: 'string',
+    format: 'binary',
+  })
+  files!: any; // Sửa thành any thay vì any[] vì chỉ upload 1 file
 
   @ApiProperty({ example: 1 })
   parent_id!: number;

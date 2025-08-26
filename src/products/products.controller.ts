@@ -8,12 +8,10 @@ import {
   Post,
   Query,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
-import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
 import { Public } from '../../public.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductFilterDto } from './dto/Filter-product.dto';
@@ -24,7 +22,6 @@ import { ProductsService } from './products.service';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
   @ApiBearerAuth()
-  @UseGuards(IsAdminGuard)
   @Post()
   @ApiConsumes('multipart/form-data') // Cho phép swagger gửi form-data
   @ApiBody({ type: CreateProductDto })

@@ -45,7 +45,7 @@ export class CategoryRepository extends BaseRepository<Category> {
     const dataQb = this.categoryRepository
       .createQueryBuilder('child')
       .leftJoin(Category, 'parent', 'child.parent_id = parent.id')
-      .select(['child.id AS child_id', 'child.name AS child_name', 'parent.name AS parent_name']);
+      .select(['child.id AS child_id', 'child.name AS child_name', 'parent.name AS parent_name', 'child.image_url']);
 
     if (search) {
       dataQb.andWhere('LOWER(child.name) LIKE LOWER(:search)', {

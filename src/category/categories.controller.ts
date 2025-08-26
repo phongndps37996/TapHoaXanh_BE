@@ -24,8 +24,9 @@ export class CategoriesController {
   @Post()
   @ApiConsumes('multipart/form-data') // Cho phép swagger gửi form-data
   @ApiBody({ type: CreateCategoryDto })
-  @UseInterceptors(FileInterceptor('image_url')) // 'image' là tên field trong form-data
+  @UseInterceptors(FileInterceptor('files')) // Sử dụng Express FileInterceptor
   create(@Body() createCategoryDto: CreateCategoryDto, @UploadedFile() file: Express.Multer.File) {
+    console.log(22222);
     return this.categoriesService.create(createCategoryDto, file);
   }
 
@@ -51,7 +52,7 @@ export class CategoriesController {
 
   @Patch(':id')
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image_url')) // 'images' là tên field file trong form-data
+  @UseInterceptors(FileInterceptor('files')) // Sử dụng Express FileInterceptor
   update(
     @Param('id') id: number,
     @Body() updateCategoryDto: UpdateCategoryDto,

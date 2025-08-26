@@ -13,6 +13,8 @@ export class CategoriesService {
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto, image: Express.Multer.File) {
+    console.log(11111);
+
     // Kiểm tra category đã tồn tại (giả sử kiểm tra theo tên)
     const category = this.categoryRepository.create(createCategoryDto);
     const existCategory = await this.categoryRepository.findByName(createCategoryDto.name);
@@ -23,6 +25,7 @@ export class CategoriesService {
       createCategoryDto.parent_id = 0;
     }
 
+    // Sửa: Sử dụng uploadFile thay vì uploadMultipleFiles vì chỉ có 1 file
     const cloudinaryResult = await this.cloudinaryService.uploadFile(image, {
       fileType: `category`,
     });
