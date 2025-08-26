@@ -63,11 +63,23 @@ export class CartItemService implements ICartItemService {
   async findAll(): Promise<CartItem[]> {
     return this._cartItemRepository.findAll();
   }
+
+  async findByIds(ids: number[], userId: number): Promise<CartItem[]> {
+    // Lấy cart items theo IDs và đảm bảo thuộc về user
+    const cartItems = await this._cartItemRepository.findByIds(ids, userId);
+    return cartItems;
+  }
+
   async remove(id: number): Promise<void> {
     const cartItem = await this._cartItemRepository.findOne(id);
     if (!cartItem) {
       throw new NotFoundException('Cart item không tồn tại');
     }
     await this._cartItemRepository.remove(cartItem);
+  }
+
+  async removeByIds(ids: number[], userId: number): Promise<void> {
+    // Xóa nhiều cart items theo IDs và đảm bảo thuộc về user
+    await this._cartItemRepository.removeByIds(ids, userId);
   }
 }
