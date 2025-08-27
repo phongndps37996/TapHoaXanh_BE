@@ -24,6 +24,7 @@ export class OrderController {
   @Post('from-cart')
   createFromCart(@Body() createOrderDto: CreateOrderFromCartDto, @Req() req: any) {
     const userId = req.user.sub;
+    console.log(1111)
     return this.orderService.createOrderFromCart(createOrderDto, userId);
   }
 

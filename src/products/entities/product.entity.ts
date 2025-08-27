@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { Brand } from '../../brand/entities/brand.entity';
 import { Category } from '../../category/entities/category.entity';
 import { AbstractEntity } from '../../database/database.entity';
+import { CartItem } from '../../cart_item/entities/cart_item.entity';
 import { ProductImage } from '../../product-images/entities/product-image.entity';
 import { ProductVariant } from '../../product-variant/entities/product-variant.entity';
 import { Rating } from '../../rating/entities/rating.entity';
@@ -14,6 +15,9 @@ export class Product extends AbstractEntity<Product> {
 
   @Column()
   price!: number;
+
+  @Column({ default: 0 })
+  quantity!: number;
 
   @Column()
   discount!: number;
@@ -61,4 +65,7 @@ export class Product extends AbstractEntity<Product> {
 
   @OneToMany(() => Wishlist, (wishlist) => wishlist.product)
   wishlist!: Wishlist[];
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.product)
+  cartItems!: CartItem[];
 }

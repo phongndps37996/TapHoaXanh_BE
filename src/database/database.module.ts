@@ -13,6 +13,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         ssl: {
           rejectUnauthorized: false, // Aiven yêu cầu SSL
         },
+        // migrations: ['dist/src/migrations/*.js'],
+        // migrationsRun: false,
       }),
       inject: [ConfigService],
     }),

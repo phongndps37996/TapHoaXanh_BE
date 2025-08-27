@@ -10,6 +10,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
 import { PaymentStatus } from './enums/payment-status.enum';
 import { OrderRepository } from './order.repository';
+import { ProductVariantRepository } from '../product-variant/product-variant.repository';
 
 @Injectable()
 export class OrderService {
@@ -22,6 +23,8 @@ export class OrderService {
     private readonly cartItemService: ICartItemService,
 
     private readonly orderItemService: OrderItemService,
+
+    private readonly productVariantRepository: ProductVariantRepository,
   ) {}
 
   // Order CRUD operations
@@ -89,17 +92,23 @@ export class OrderService {
       quantity: number;
       unit_price: number;
       productVariant: any;
+      product: any;
     }[] = [];
 
     for (const cartItem of cartItems) {
       const itemTotal = cartItem.price * cartItem.quantity;
       totalPrice += itemTotal;
 
-      // Tạo order item
+      // Tạo order item - kiểm tra cả product và product_variant
+      if (!cartItem.product_variant && !cartItem.product) {
+        throw new BadRequestException(`Cart item ${cartItem.id} không có sản phẩm hợp lệ`);
+      }
+
       orderItems.push({
         quantity: cartItem.quantity,
         unit_price: cartItem.price,
         productVariant: cartItem.product_variant,
+        product: cartItem.product,
       });
     }
 
@@ -120,12 +129,37 @@ export class OrderService {
 
     // 6. Tạo order items
     for (const item of orderItems) {
-      await this.orderItemService.create({
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        orderId: savedOrder.id,
-        productVariantId: item.productVariant.id,
-      });
+      if (item.productVariant) {
+        // Nếu có product variant, tạo order item với product variant
+        await this.orderItemService.create({
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          orderId: savedOrder.id,
+          productVariantId: item.productVariant.id,
+        });
+      } else if (item.product) {
+        // Nếu chỉ có product (không có variant), tìm hoặc tạo product variant mặc định
+        let defaultVariant = await this.productVariantRepository.findOneByProductId(item.product.id);
+
+        if (!defaultVariant) {
+          // Tạo product variant mặc định cho product
+          defaultVariant = await this.productVariantRepository.create({
+            variant_name: 'Mặc định',
+            image_url: item.product.images,
+            price_modifier: 0,
+            stock: item.product.purchase,
+            product: item.product,
+          });
+          await this.productVariantRepository.save(defaultVariant);
+        }
+
+        await this.orderItemService.create({
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          orderId: savedOrder.id,
+          productVariantId: defaultVariant.id,
+        });
+      }
     }
 
     // 7. Xóa cart items đã thanh toán
