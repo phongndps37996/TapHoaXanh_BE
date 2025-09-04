@@ -21,7 +21,7 @@ export class CreateOrderItemDto {
 
   @ApiProperty({
     example: 3,
-    description: 'ID của phiên bản sản phẩm (màu, size, ...)',
+    description: 'ID của sản phẩm',
   })
-  productVariantId!: number;
+  productId!: number;
 }

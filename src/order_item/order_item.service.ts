@@ -3,13 +3,13 @@ import { CreateOrderItemDto } from './dto/create-order_item.dto';
 import { UpdateOrderItemDto } from './dto/update-order_item.dto';
 import { OrderItemRepository } from './order_item.repository';
 import { OrderRepository } from '../order/order.repository';
-import { ProductVariantRepository } from '../product-variant/product-variant.repository';
+import { ProductRepository } from '../products/products.repository';
 
 @Injectable()
 export class OrderItemService {
   constructor(
     private readonly orderItemRepository: OrderItemRepository,
-    private readonly productVariantRepository: ProductVariantRepository,
+    private readonly productRepository: ProductRepository,
     private readonly orderRepository: OrderRepository,
   ) {}
 
@@ -18,9 +18,9 @@ export class OrderItemService {
     const order = await this.orderRepository.findById(_createOrderItemDto.orderId);
     if (!order) throw new NotFoundException('Đơn hàng không tồn tại');
     orderItem.order = order;
-    const productVariant = await this.productVariantRepository.findById(_createOrderItemDto.productVariantId);
-    if (!productVariant) throw new NotFoundException('Biến thể không tồn tại');
-    orderItem.productVariant = productVariant;
+    const product = await this.productRepository.findOne(_createOrderItemDto.productId);
+    if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
+    orderItem.product = product;
 
     return this.orderItemRepository.save(orderItem);
   }
@@ -42,10 +42,10 @@ export class OrderItemService {
       orderItemExist.order = order;
     }
 
-    if (_updateOrderItemDto.productVariantId) {
-      const productVariant = await this.productVariantRepository.findById(_updateOrderItemDto.productVariantId);
-      if (!productVariant) throw new NotFoundException('Biến thể không tồn tại');
-      orderItemExist.productVariant = productVariant;
+    if (_updateOrderItemDto.productId) {
+      const product = await this.productRepository.findOne(_updateOrderItemDto.productId);
+      if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
+      orderItemExist.product = product;
     }
 
     return this.orderItemRepository.save(orderItemExist);

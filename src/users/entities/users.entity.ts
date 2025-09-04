@@ -21,6 +21,9 @@ export class Users extends AbstractEntity<Users> {
   @Column({ type: 'enum', enum: TUserRole, default: TUserRole.USER })
   role!: TUserRole;
 
+  @Column({ default: false })
+  isEmailVerified!: boolean;
+
   @Column('varchar', { length: 255, unique: true })
   email!: string;
 

@@ -15,7 +15,6 @@ import { OrderModule } from './order/order.module';
 import { OrderItemModule } from './order_item/order_item.module';
 import { PaymentModule } from './payment/payment.module';
 import { ProductImagesModule } from './product-images/product-images.module';
-import { ProductVariantModule } from './product-variant/product-variant.module';
 import { ProductsModule } from './products/products.module';
 import { RatingModule } from './rating/rating.module';
 import { UsersModule } from './users/users.module';
@@ -33,7 +32,6 @@ import { WishlistModule } from './wishlist/wishlist.module';
     ProductsModule,
     CategoriesModule,
     DatabaseModule,
-    ProductVariantModule,
     ProductImagesModule,
     BrandModule,
     UsersModule,
@@ -49,7 +47,5 @@ import { WishlistModule } from './wishlist/wishlist.module';
     CloudinaryModule,
     PaymentModule,
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {}

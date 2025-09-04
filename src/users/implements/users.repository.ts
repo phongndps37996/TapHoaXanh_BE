@@ -79,4 +79,8 @@ export class UsersRepository implements IUsersRepository {
     });
     return total;
   }
+
+  async updateEmailVerification(id: number, isVerified: boolean): Promise<void> {
+    await this.usersRepository.update({ id }, { isEmailVerified: isVerified });
+  }
 }

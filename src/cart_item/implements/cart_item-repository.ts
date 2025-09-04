@@ -19,13 +19,6 @@ export class CartItemRepository implements ICartItemRepository {
     });
   }
 
-  async findByCartAndProductVariant(cartId: number, productVariantId: number): Promise<CartItem | null> {
-    return this._cartItemRepository.findOne({
-      where: { cart: { id: cartId }, product_variant: { id: productVariantId } },
-      relations: ['cart', 'product_variant'],
-    });
-  }
-
   async save(cartItem: CartItem): Promise<CartItem> {
     return this._cartItemRepository.save(cartItem);
   }
@@ -38,13 +31,13 @@ export class CartItemRepository implements ICartItemRepository {
   async findOne(id: number): Promise<CartItem | null> {
     return this._cartItemRepository.findOne({
       where: { id },
-      relations: ['cart', 'product', 'product_variant'],
+      relations: ['cart', 'product'],
     });
   }
 
   async findAll(): Promise<CartItem[]> {
     return this._cartItemRepository.find({
-      relations: ['cart', 'product', 'product_variant'],
+      relations: ['cart', 'product'],
     });
   }
 
@@ -52,7 +45,7 @@ export class CartItemRepository implements ICartItemRepository {
     // Lấy cart items theo IDs và đảm bảo thuộc về user
     const items = await this._cartItemRepository.find({
       where: { id: In(ids) },
-      relations: ['cart', 'product', 'product_variant', 'cart.user'],
+      relations: ['cart', 'product', 'cart.user'],
     });
     return items.filter((item) => item.cart.user.id === userId);
   }

@@ -4,9 +4,9 @@ import { Category } from '../../category/entities/category.entity';
 import { AbstractEntity } from '../../database/database.entity';
 import { CartItem } from '../../cart_item/entities/cart_item.entity';
 import { ProductImage } from '../../product-images/entities/product-image.entity';
-import { ProductVariant } from '../../product-variant/entities/product-variant.entity';
 import { Rating } from '../../rating/entities/rating.entity';
 import { Wishlist } from '../../wishlist/entities/wishlist.entity';
+import { OrderItem } from '../../order_item/entities/order_item.entity';
 
 @Entity('product')
 export class Product extends AbstractEntity<Product> {
@@ -50,9 +50,6 @@ export class Product extends AbstractEntity<Product> {
   @JoinColumn({ name: 'category_id' })
   category!: Category;
 
-  @OneToMany(() => ProductVariant, (variant) => variant.product)
-  variants!: ProductVariant[];
-
   @OneToMany(() => ProductImage, (image) => image.product)
   image!: ProductImage;
 
@@ -68,4 +65,7 @@ export class Product extends AbstractEntity<Product> {
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.product)
   cartItems!: CartItem[];
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems!: OrderItem[];
 }

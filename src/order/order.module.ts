@@ -9,18 +9,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '../auth/auth.module';
 import { CartItemModule } from '../cart_item/cart_item.module';
 import { OrderItemModule } from '../order_item/order_item.module';
-import { ProductVariantModule } from '../product-variant/product-variant.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Order]),
-    UsersModule,
-    JwtModule,
-    AuthModule,
-    CartItemModule,
-    OrderItemModule,
-    ProductVariantModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Order]), UsersModule, JwtModule, AuthModule, CartItemModule, OrderItemModule],
   controllers: [OrderController],
   providers: [OrderService, OrderRepository],
   exports: [OrderService, OrderRepository],

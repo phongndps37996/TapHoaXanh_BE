@@ -7,7 +7,6 @@ import { CartModule } from '../cart/cart.module';
 import { ProductsModule } from '../products/products.module';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
-import { ProductVariantModule } from '../product-variant/product-variant.module';
 
 @Module({
   imports: [
@@ -16,7 +15,6 @@ import { ProductVariantModule } from '../product-variant/product-variant.module'
     forwardRef(() => ProductsModule),
     AuthModule,
     JwtModule,
-    forwardRef(() => ProductVariantModule),
   ],
   controllers: [CartItemController],
   providers: [CartItemRepositoryProvider, CartItemServiceProvider],

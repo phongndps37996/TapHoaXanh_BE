@@ -83,17 +83,12 @@ export class ProductRepository extends BaseRepository<Product> {
   async getDetailProduct(slug: string) {
     return await this.productRepository
       .createQueryBuilder('p')
-      .innerJoin('p.variants', 'pv') // quan hệ Product -> ProductVariant
-      .leftJoin('p.image', 'pi2') // quan hệ Product -> ProductImage
-      .select([
-        'pv.variant_name AS variant_name',
-        'pv.image_url AS variant_image',
-        'p.description AS description',
-        'pi2.image_url AS product_image',
-        'pv.price_modifier AS price_modifier',
-      ])
-      .where('p.slug LIKE :slug', { slug: `%${slug}%` })
-      .getRawMany();
+      .leftJoin('p.image', 'pi') // quan hệ Product -> ProductImage
+      .leftJoin('p.category', 'c') // quan hệ Product -> Category
+      .leftJoin('p.brand', 'b') // quan hệ Product -> Brand
+      .select(['p.*', 'c.name AS category_name', 'b.name AS brand_name', 'pi.image_url AS product_image'])
+      .where('p.slug = :slug', { slug: slug })
+      .getRawOne();
   }
 
   async getTopPurchased(limit: number): Promise<Product[]> {
