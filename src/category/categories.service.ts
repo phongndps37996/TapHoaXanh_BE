@@ -4,12 +4,14 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { FilterCategoryDto } from './dto/filter-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { ICloudinaryService } from '../cloudinary/interfaces/icloudinary-service.interface';
+import { ProductRepository } from 'src/products/products.repository';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     private readonly categoryRepository: CategoryRepository,
     private readonly cloudinaryService: ICloudinaryService,
+    private readonly productRepository: ProductRepository,
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto, image: Express.Multer.File) {
@@ -89,7 +91,16 @@ export class CategoriesService {
     // kiểm tra tồn tại trước khi xóa
     const existCategory = await this.categoryRepository.findById(id);
     if (!existCategory) throw new NotFoundException('Danh mục không tồn tại');
-    this.cloudinaryService.deleteFile(existCategory.image_url);
+
+    const existProduct = await this.productRepository.getAllProductByCateId(id);
+    console.log('🚀 ~ CategoriesService ~ remove ~ existProduct:', existProduct, existCategory);
+    if (existProduct.length > 0) {
+      existProduct.map((product) => this.productRepository.save({ ...product, category: null }));
+    }
+
+    if (existCategory.image_url && existCategory.image_url.trim() !== '') {
+      this.cloudinaryService.deleteFile(existCategory.image_url);
+    }
     await this.categoryRepository.deleteCategoryWithParentId({ parent_id: id });
     await this.categoryRepository.delete(id);
     return { message: 'Xóa thành công' };

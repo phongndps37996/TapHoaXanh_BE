@@ -24,7 +24,7 @@ export class OrderController {
   @Post('from-cart')
   createFromCart(@Body() createOrderDto: CreateOrderFromCartDto, @Req() req: any) {
     const userId = req.user.sub;
-    console.log(1111)
+    console.log(1111);
     return this.orderService.createOrderFromCart(createOrderDto, userId);
   }
 
@@ -34,8 +34,15 @@ export class OrderController {
   }
 
   @Get('/revenue')
-  getTotalRevenueSuccess() {
-    return this.orderService.getTotalRevenueSuccess();
+  getTotalRevenueSuccess(@Query('year') year?: string, @Query('month') month?: string) {
+    const y = Number(year) || new Date().getFullYear();
+    const m = month ? parseInt(month, 10) : undefined;
+    return this.orderService.getTotalRevenueSuccess(y, m);
+  }
+
+  @Get('/view-detail/:orderCode')
+  getOrderDetailByCode(@Param('orderCode') orderCode: string) {
+    return this.orderService.getOrderDetailByCode(orderCode);
   }
 
   @Get('/revenue-month')
@@ -50,8 +57,10 @@ export class OrderController {
   }
 
   @Get('/count')
-  countNumberOfOrder() {
-    return this.orderService.countNumberOfOrder();
+  countNumberOfOrder(@Query('year') year?: string, @Query('month') month?: string) {
+    const y = Number(year) || new Date().getFullYear();
+    const m = month ? parseInt(month, 10) : undefined;
+    return this.orderService.countNumberOfOrder(y, m);
   }
 
   @Get(':id')

@@ -20,7 +20,7 @@ export class PaymentService {
     if (!orderExist) throw new NotFoundException('Đơn hàng không tồn tại');
     const txnRef = uuidv4();
     const url = await this.vnpay.buildPaymentUrl({
-      vnp_Amount: orderExist.total_price * 100, // ✅ Nhân 100 theo yêu cầu VNPAY
+      vnp_Amount: orderExist.total_price, // ✅ Nhân 100 theo yêu cầu VNPAY
       vnp_TxnRef: txnRef,
       vnp_OrderInfo: `Thanh toan don hang ${orderExist.order_code}`, // ✅ Không dấu theo yêu cầu VNPAY
       vnp_OrderType: ProductCode.Other,
@@ -57,21 +57,35 @@ export class PaymentService {
   async handleIpn(query: any) {
     const verify = this.vnpay.verifyIpnCall(query);
 
+    console.log(2222, verify);
+
     if (!verify.isVerified) return IpnFailChecksum;
     if (!verify.isSuccess) return IpnFailChecksum; // có thể trả IpnUnknownError
 
-    // TODO: Lấy order từ DB theo verify.vnp_TxnRef
-    const order = await this.orderRepository.findByOrderCode(verify.vnp_TxnRef);
-    if (!order) return IpnOrderNotFound;
+    console.log(3333);
+    // Lấy payment record theo txn_ref để lấy order
+    const payment = await this.paymentRepository.findOneByTxnRefWithOrder(verify.vnp_TxnRef);
+    if (!payment) return IpnOrderNotFound;
 
+    const order = payment.order;
+
+    console.log(4444, order.total_price, verify.vnp_Amount);
     // Kiểm tra số tiền
-    if (verify.vnp_Amount !== order.total_price) return IpnInvalidAmount;
+    if (verify.vnp_Amount !== order.total_price) {
+      console.log(' so tien không hợp lệ');
+      return IpnInvalidAmount;
+    }
 
+    console.log(5555);
     // Cập nhật trạng thái đơn hàng
-    if (order.status !== 'completed') {
-      order.status = 'completed';
+    if (order.status !== 'success') {
+      console.log('cập nhật trạng thái đơn hàng');
+
+      order.status = 'success';
       await this.orderRepository.save(order);
     }
+
+    console.log(66666);
 
     return IpnSuccess;
   }
@@ -79,6 +93,7 @@ export class PaymentService {
   async handleVNPayCallback(queryParams: any) {
     // Tìm payment record dựa vào txn_ref với order relation
     const payment = await this.paymentRepository.findOneByTxnRefWithOrder(queryParams.vnp_TxnRef);
+    console.log('🚀 ~ PaymentService ~ handleVNPayCallback ~ payment:', payment);
 
     if (!payment) {
       throw new NotFoundException('Không tìm thấy payment record');
@@ -88,6 +103,7 @@ export class PaymentService {
     if (queryParams.vnp_ResponseCode === '00') {
       payment.status = 'success';
       // Có thể cập nhật status order thành 'paid' ở đây
+      await this.handleIpn(queryParams);
     } else {
       payment.status = 'failed';
     }

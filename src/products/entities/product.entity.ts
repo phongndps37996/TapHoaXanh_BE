@@ -46,9 +46,9 @@ export class Product extends AbstractEntity<Product> {
   @Column({ default: 0 })
   purchase!: number;
 
-  @ManyToOne(() => Category, (category) => category.product)
+  @ManyToOne(() => Category, (category) => category.product, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
-  category!: Category;
+  category?: Category | null;
 
   @OneToMany(() => ProductImage, (image) => image.product)
   image!: ProductImage;

@@ -68,8 +68,8 @@ export class OrderService {
     if (result.affected === 0) throw new NotFoundException(`Order with id ${id} not found`);
   }
 
-  async countNumberOfOrder(): Promise<number> {
-    return this.orderRepository.countNumberOfOrder();
+  async countNumberOfOrder(year: number, month?: number): Promise<number> {
+    return this.orderRepository.countNumberOfOrder(year, month);
   }
 
   // Tạo order từ cart items được chọn
@@ -137,11 +137,15 @@ export class OrderService {
     return savedOrder;
   }
 
-  async getTotalRevenueSuccess() {
-    return await this.orderRepository.getTotalRevenueSuccess();
+  async getTotalRevenueSuccess(year: number, month?: number) {
+    return await this.orderRepository.getTotalRevenueSuccess(year, month);
   }
 
   async getMonthlyRevenueSuccess(year: number) {
     return await this.orderRepository.getMonthlyRevenueSuccess(year);
+  }
+
+  async getOrderDetailByCode(orderCode: string) {
+    return await this.orderRepository.getOrderDetailByCode(orderCode);
   }
 }

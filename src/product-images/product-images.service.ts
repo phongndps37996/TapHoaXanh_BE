@@ -63,7 +63,9 @@ export class ProductImagesService {
   async remove(id: number) {
     const productImage = await this.productImagesRepository.findById(id);
     if (!productImage) throw new NotFoundException('Hình ảnh sản phẩm không tồn tại');
-    this.cloudinaryService.deleteFile(productImage.image_url!);
+    if (productImage.image_url && productImage.image_url.trim() !== '') {
+      this.cloudinaryService.deleteFile(productImage.image_url);
+    }
 
     await this.productImagesRepository.delete(id);
 

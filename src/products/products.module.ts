@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -11,7 +11,13 @@ import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product]), CategoriesModule, BrandModule, CloudinaryModule, AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Product]),
+    forwardRef(() => CategoriesModule),
+    BrandModule,
+    CloudinaryModule,
+    AuthModule,
+  ],
   controllers: [ProductsController],
   providers: [ProductsService, ProductRepository, IsAdminGuard],
   exports: [ProductsService, ProductRepository],

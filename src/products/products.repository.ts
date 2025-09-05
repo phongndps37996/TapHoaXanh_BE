@@ -59,7 +59,7 @@ export class ProductRepository extends BaseRepository<Product> {
       qb.andWhere('product.price <= :maxPrice', { maxPrice });
     }
 
-    qb.orderBy('product.id', 'DESC')
+    qb.orderBy('product.purchase', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -98,4 +98,19 @@ export class ProductRepository extends BaseRepository<Product> {
       .limit(limit)
       .getMany();
   }
+
+  async getAllProductByCateId(idCate: number): Promise<Product[]> {
+    return await this.productRepository.find({
+      where: {
+        category: {
+          id: idCate,
+        },
+      },
+      relations: ['category'],
+    });
+  }
+
+  // Nếu cate bị xóa việc đầu tiên là các product của cate đó đc lấy ra
+  // sau đó cập nhật là null
+  // cate sẽ đc xóa
 }

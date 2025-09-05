@@ -1,11 +1,11 @@
-import { InjectRepository } from '@nestjs/typeorm';
-import { BaseRepository } from '../database/abstract.repository';
-import { Repository } from 'typeorm';
-import { Order } from './entities/order.entity';
-import { FilterOrderDto } from './dto/filter-order.dto';
 import { NotFoundException } from '@nestjs/common';
-import { PaymentStatus } from './enums/payment-status.enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { BaseRepository } from '../database/abstract.repository';
+import { FilterOrderDto } from './dto/filter-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { Order } from './entities/order.entity';
+import { PaymentStatus } from './enums/payment-status.enum';
 
 export class OrderRepository extends BaseRepository<Order> {
   constructor(
@@ -22,7 +22,7 @@ export class OrderRepository extends BaseRepository<Order> {
   }
 
   async filterAllOrder(query: FilterOrderDto) {
-    const { search, status, page = 1, limit = 10 } = query;
+    const { search, status, page = 1, limit = 10, start_date, end_date, month, year } = query;
 
     const qb = this.orderRepository
       .createQueryBuilder('o')
@@ -49,6 +49,22 @@ export class OrderRepository extends BaseRepository<Order> {
       qb.andWhere(`LOWER(o.status) LIKE LOWER(:status)`, {
         status: `%${status}%`,
       });
+    }
+
+    if (start_date) {
+      qb.andWhere(`o.createdAt >= :start_date`, { start_date });
+    }
+
+    if (end_date) {
+      qb.andWhere(`o.createdAt <= :end_date`, { end_date });
+    }
+
+    if (month) {
+      qb.andWhere(`EXTRACT(MONTH FROM o.createdAt) = :month`, { month });
+    }
+
+    if (year) {
+      qb.andWhere(`EXTRACT(YEAR FROM o.createdAt) = :year`, { year });
     }
 
     qb.orderBy('o.id', 'DESC')
@@ -96,10 +112,20 @@ export class OrderRepository extends BaseRepository<Order> {
     return order;
   }
 
-  async countNumberOfOrder(): Promise<number> {
-    return await this.orderRepository.count({
-      where: { status: PaymentStatus.SUCCESS },
-    });
+  async countNumberOfOrder(year?: number, month?: number): Promise<number> {
+    const qb = this.orderRepository
+      .createQueryBuilder('o')
+      .where('o.status = :status', { status: PaymentStatus.SUCCESS });
+
+    if (month) {
+      qb.andWhere(`EXTRACT(MONTH FROM o.createdAt) = :month`, { month });
+    }
+
+    if (year) {
+      qb.andWhere(`EXTRACT(YEAR FROM o.createdAt) = :year`, { year });
+    }
+
+    return await qb.getCount();
   }
 
   async updateOrder(id: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
@@ -112,14 +138,22 @@ export class OrderRepository extends BaseRepository<Order> {
     return await this.orderRepository.findOneBy({ order_code: orderCode });
   }
 
-  async getTotalRevenueSuccess(): Promise<number> {
-    const result = await this.orderRepository
-      .createQueryBuilder('order')
-      .select('SUM(order.total_price)', 'total')
-      .where('order.status = :status', { status: PaymentStatus.SUCCESS })
-      .getRawOne<{ total: string | null }>();
+  async getTotalRevenueSuccess(year?: number, month?: number): Promise<number> {
+    const qb = this.orderRepository
+      .createQueryBuilder('o')
+      .select('SUM(o.total_price)', 'total')
+      .where('o.status = :status', { status: PaymentStatus.SUCCESS });
 
-    // Nếu không có kết quả thì trả về 0
+    if (month) {
+      qb.andWhere(`EXTRACT(MONTH FROM o.createdAt) = :month`, { month });
+    }
+
+    if (year) {
+      qb.andWhere(`EXTRACT(YEAR FROM o.createdAt) = :year`, { year });
+    }
+
+    const result = await qb.getRawOne<{ total: string | null }>();
+
     return result?.total ? Number(result.total) : 0;
   }
 
@@ -139,5 +173,24 @@ export class OrderRepository extends BaseRepository<Order> {
       monthly[Number(r.month) - 1] = Number(r.total);
     }
     return monthly;
+  }
+
+  async getOrderDetailByCode(orderCode: string): Promise<Order[]> {
+    return await this.orderRepository
+      .createQueryBuilder('o')
+      .innerJoin('o.user', 'u')
+      .innerJoin('o.orderItem', 'oi')
+      .innerJoin('oi.productVariant', 'pv')
+      .innerJoin('pv.product', 'p')
+      .select([
+        'p.name AS productName',
+        'oi.unit_price AS unitPrice',
+        'oi.quantity AS quantity',
+        'o.order_code AS orderCode',
+        'u.name AS userName',
+        'p.images AS productImage',
+      ])
+      .where('o.order_code = :orderCode', { orderCode })
+      .getRawMany();
   }
 }

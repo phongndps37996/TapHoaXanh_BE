@@ -17,4 +17,20 @@ export class FilterOrderDto {
   @IsOptional()
   @ApiProperty({ required: false })
   limit?: number;
+
+  @IsOptional()
+  @ApiProperty({ required: false })
+  start_date?: string;
+
+  @IsOptional()
+  @ApiProperty({ required: false })
+  end_date?: string;
+
+  @IsOptional()
+  @ApiProperty({ required: false })
+  month?: string;
+
+  @IsOptional()
+  @ApiProperty({ required: false })
+  year?: string;
 }
