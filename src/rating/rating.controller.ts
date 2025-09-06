@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { RatingService } from './rating.service';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { UpdateRatingDto } from './dto/update-rating.dto';
+import { RatingFilterDto } from './dto/Filter-rating.dto';
 
 @Controller('rating')
 export class RatingController {
@@ -15,6 +16,11 @@ export class RatingController {
   @Get()
   findAll() {
     return this.ratingService.findAll();
+  }
+
+  @Get('search')
+  async Search(@Query() query: RatingFilterDto) {
+    return this.ratingService.filterRating(query);
   }
 
   @Get(':id')

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsOptional } from 'class-validator';
 
 export class ProductFilterDto {
@@ -16,7 +17,12 @@ export class ProductFilterDto {
 
   @IsOptional()
   @ApiProperty({ required: false })
-  category?: number;
+  @Transform(({ value }) => {
+    if (value === 'null') return null;
+    if (value === '') return undefined;
+    return Number(value);
+  })
+  category?: number | null;
 
   @IsOptional()
   @ApiProperty({ required: false })

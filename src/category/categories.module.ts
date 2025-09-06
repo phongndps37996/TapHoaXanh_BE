@@ -6,11 +6,13 @@ import { Category } from './entities/category.entity';
 import { CategoryRepository } from './categories.reposirory';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { ProductsModule } from 'src/products/products.module';
+import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category]), CloudinaryModule, forwardRef(() => ProductsModule)],
+  imports: [TypeOrmModule.forFeature([Category]), CloudinaryModule, forwardRef(() => ProductsModule), AuthModule],
   controllers: [CategoriesController],
-  providers: [CategoriesService, CategoryRepository],
+  providers: [CategoriesService, CategoryRepository, IsAdminGuard],
   exports: [CategoryRepository],
 })
 export class CategoriesModule {}

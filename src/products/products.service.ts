@@ -83,6 +83,18 @@ export class ProductsService {
       ...updateProductDto,
     });
 
+    if (updateProductDto.categoryId) {
+      const existCategory = await this.categoryRepository.findById(updateProductDto.categoryId);
+      if (!existCategory) throw new NotFoundException('Danh mục này không tồn tại');
+      updateProduct.category = existCategory;
+    }
+
+    if (updateProductDto.brandId) {
+      const existBrand = await this.brandRepository.findById(updateProductDto.brandId);
+      if (!existBrand) throw new NotFoundException('Thương hiệu này không tồn tại');
+      updateProduct.brand = existBrand;
+    }
+
     await this.productRepository.save(updateProduct);
 
     return {
@@ -127,5 +139,9 @@ export class ProductsService {
 
   async getTopPurchasedProducts(limit: number) {
     return this.productRepository.getTopPurchased(limit);
+  }
+
+  async getAllProductNullCate() {
+    return await this.productRepository.getAllProductNullCate();
   }
 }

@@ -47,8 +47,12 @@ export class ProductRepository extends BaseRepository<Product> {
       qb.andWhere('LOWER(brand.name) LIKE LOWER(:brand)', { brand });
     }
 
-    if (category) {
-      qb.andWhere('product.category = :category', { category });
+    if (category !== undefined) {
+      if (category === null) {
+        qb.andWhere('product.category_id IS NULL');
+      } else {
+        qb.andWhere('product.category = :category', { category });
+      }
     }
 
     if (minPrice) {
@@ -113,4 +117,8 @@ export class ProductRepository extends BaseRepository<Product> {
   // Nếu cate bị xóa việc đầu tiên là các product của cate đó đc lấy ra
   // sau đó cập nhật là null
   // cate sẽ đc xóa
+
+  async getAllProductNullCate(): Promise<Product[]> {
+    return await this.productRepository.createQueryBuilder('product').where('product.categoryId IS NULL').getMany();
+  }
 }

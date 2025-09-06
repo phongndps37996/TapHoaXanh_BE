@@ -6,6 +6,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
+import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
 
 @Controller('order')
 export class OrderController {
@@ -33,6 +34,7 @@ export class OrderController {
     return this.orderService.findAll();
   }
 
+  @UseGuards(JwtGuard, IsAdminGuard)
   @Get('/revenue')
   getTotalRevenueSuccess(@Query('year') year?: string, @Query('month') month?: string) {
     const y = Number(year) || new Date().getFullYear();
@@ -40,22 +42,26 @@ export class OrderController {
     return this.orderService.getTotalRevenueSuccess(y, m);
   }
 
+  @UseGuards(JwtGuard, IsAdminGuard)
   @Get('/view-detail/:orderCode')
   getOrderDetailByCode(@Param('orderCode') orderCode: string) {
     return this.orderService.getOrderDetailByCode(orderCode);
   }
 
+  @UseGuards(JwtGuard, IsAdminGuard)
   @Get('/revenue-month')
   getMonthlyRevenueSuccess(@Query('year') year?: string) {
     const y = Number(year) || new Date().getFullYear();
     return this.orderService.getMonthlyRevenueSuccess(y);
   }
 
+  @UseGuards(JwtGuard, IsAdminGuard)
   @Get('/search')
   filterAllOrder(@Query() filter: FilterOrderDto) {
     return this.orderService.filterAllOrder(filter);
   }
 
+  @UseGuards(JwtGuard, IsAdminGuard)
   @Get('/count')
   countNumberOfOrder(@Query('year') year?: string, @Query('month') month?: string) {
     const y = Number(year) || new Date().getFullYear();
