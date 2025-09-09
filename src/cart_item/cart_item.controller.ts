@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ICartItemService } from './interfaces/icart_item-service.interface';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -14,15 +14,18 @@ export default class CartItemController {
     return await this.cartItemService.findAll();
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateCartItemDto: UpdateCartItemDto) {
-  //   return this.cartItemService.update(+id, updateCartItemDto);
+  // @ApiOperation({ summary: 'Cập nhật số lượng sản phẩm trong giỏ hàng' })
+  // @ApiBearerAuth()
+  // @UseGuards(JwtGuard)
+  // @Put(':id')
+  // updateItem(@Param('id') id: number, @Body() updateQuantityDto: UpdateQuantityDto, @Req() req: any) {
+  //   return this.cartItemService.updateItem(req.user.sub, id, updateQuantityDto.quantity);
   // }
-  @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartItemService.remove(+id);
-  }
+  // @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
+  // @UseGuards(JwtGuard)
+  // @ApiBearerAuth()
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.cartItemService.remove(+id);
+  // }
 }

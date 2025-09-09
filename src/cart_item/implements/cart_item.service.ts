@@ -31,10 +31,10 @@ export class CartItemService implements ICartItemService {
     // Tính giá sản phẩm sau khi áp dụng discount
     const discountedPrice = product.price * (1 - product.discount / 100);
 
-    // Validate stock - bắt lỗi khi quantity không đủ (sử dụng purchase field làm stock)
-    if (product.purchase < quantity) {
+    // Validate stock - bắt lỗi khi quantity không đủ
+    if (product.quantity < quantity) {
       throw new BadRequestException(
-        `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.purchase}, yêu cầu: ${quantity}`,
+        `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.quantity}, yêu cầu: ${quantity}`,
       );
     }
 
@@ -42,9 +42,9 @@ export class CartItemService implements ICartItemService {
       const newQuantity = existingCartItem.quantity + quantity;
 
       // Xác nhận tổng số lượng không vượt quá số lượng có sẵn
-      if (newQuantity > product.purchase) {
+      if (newQuantity > product.quantity) {
         throw new BadRequestException(
-          `Tổng số lượng vượt quá số lượng trong kho. Hiện có: ${product.purchase}, yêu cầu: ${newQuantity}`,
+          `Tổng số lượng vượt quá số lượng trong kho. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
         );
       }
 
@@ -61,27 +61,26 @@ export class CartItemService implements ICartItemService {
     return this._cartItemRepository.save(newCartItem);
   }
 
-  /**
-   * Tạo cart item với product như một biến thể khi product variant không tồn tại
-   */
+  // Tạo cart item với product như một biến thể khi product variant không tồn tại
+
   private async createCartItemWithProductAsVariant(cart: Cart, product: Product, quantity: number): Promise<CartItem> {
     // Kiểm tra xem đã có cart item với product này chưa
     const existingCartItem = await this._cartItemRepository.findByCartAndProduct(cart.id, product.id);
 
-    // Validate stock - sử dụng purchase field của product như stock
-    if (product.purchase < quantity) {
+    // Validate stock
+    if (product.quantity < quantity) {
       throw new BadRequestException(
-        `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.purchase}, yêu cầu: ${quantity}`,
+        `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.quantity}, yêu cầu: ${quantity}`,
       );
     }
 
     if (existingCartItem) {
       const newQuantity = existingCartItem.quantity + quantity;
 
-      // Xác nhận tổng số lượng không vượt product có sẵn
-      if (newQuantity > product.purchase) {
+      // kiểm tra tổng số lượng không vượt quá số lượng có sẵn
+      if (newQuantity > product.quantity) {
         throw new BadRequestException(
-          `Tổng số lượng vượt quá số lượng trong kho. Hiện có: ${product.purchase}, yêu cầu: ${newQuantity}`,
+          `Tổng số lượng vượt quá số lượng trong kho. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
         );
       }
 
@@ -91,7 +90,7 @@ export class CartItemService implements ICartItemService {
       return this._cartItemRepository.save(existingCartItem);
     }
 
-    // Tạo cart item mới với product như một biến thể
+    // Tạo cart item mới với product
     const newCartItem = new CartItem(cart, quantity, product.price, product);
     newCartItem.total_price = product.price * quantity;
 
@@ -102,7 +101,7 @@ export class CartItemService implements ICartItemService {
   }
 
   async findByIds(ids: number[], userId: number): Promise<CartItem[]> {
-    // Lấy cart items theo IDs và đảm bảo thuộc về user
+    // Lấy cart items theo id và userid
     const cartItems = await this._cartItemRepository.findByIds(ids, userId);
     return cartItems;
   }
@@ -118,5 +117,22 @@ export class CartItemService implements ICartItemService {
   async removeByIds(ids: number[], userId: number): Promise<void> {
     // Xóa nhiều cart items theo IDs và đảm bảo thuộc về user
     await this._cartItemRepository.removeByIds(ids, userId);
+  }
+
+  async addMultipleCartItems(cart: Cart, items: Array<{ productId: number; quantity: number }>): Promise<CartItem[]> {
+    // Gộp sản phẩm trùng lặp
+    const mergedMap = new Map<number, number>();
+    for (const item of items) {
+      const existing = mergedMap.get(item.productId) || 0;
+      mergedMap.set(item.productId, existing + item.quantity);
+    }
+
+    const cartItems = [];
+    for (const [productId, quantity] of mergedMap) {
+      const cartItem = await this.addOrUpdateCartItem(cart, productId, quantity);
+      cartItems.push(cartItem);
+    }
+
+    return cartItems;
   }
 }

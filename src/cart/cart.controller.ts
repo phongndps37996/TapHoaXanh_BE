@@ -1,8 +1,10 @@
 // cart.controller.ts
-import { Controller, Post, Body, Req, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get, Put } from '@nestjs/common';
 import { CreateCartDto } from './dto/create-cart.dto';
+import { UpdateCartDto } from './dto/update-cart.dto';
+import { AddMultipleCartItemsDto } from './dto/add-multiple-cart-items.dto';
 import { JwtGuard } from '../auth/guards/jwt.guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ICartService } from './interfaces/icart-service.interface';
 
 @Controller('cart')
@@ -23,5 +25,26 @@ export class CartController {
   @UseGuards(JwtGuard)
   async getOwnedCart(@Req() req: any): Promise<any> {
     return await this.cartService.FindOrCreateCart(req.user.sub);
+  }
+
+  @ApiOperation({
+    summary: 'Cập nhật giỏ hàng',
+  })
+  @ApiBearerAuth()
+  @Put('update')
+  @UseGuards(JwtGuard)
+  async updateCart(@Req() req: any, @Body() dto: UpdateCartDto): Promise<any> {
+    const userId = req.user.sub;
+    const result = await this.cartService.updateCart(userId, dto.productId, dto.quantity);
+    return result;
+  }
+
+  @ApiOperation({ summary: 'Thêm nhiều sản phẩm vào giỏ hàng cùng lúc' })
+  @ApiBearerAuth()
+  @Post('add-multiple')
+  @UseGuards(JwtGuard)
+  async addMultipleCart(@Req() req: any, @Body() dto: AddMultipleCartItemsDto): Promise<any> {
+    const userId = req.user.sub;
+    return await this.cartService.addMultipleCart(userId, dto.items as Array<{ productId: number; quantity: number }>);
   }
 }

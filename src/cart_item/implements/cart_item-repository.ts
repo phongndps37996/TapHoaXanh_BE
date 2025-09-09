@@ -22,7 +22,6 @@ export class CartItemRepository implements ICartItemRepository {
   async save(cartItem: CartItem): Promise<CartItem> {
     return this._cartItemRepository.save(cartItem);
   }
-
   async remove(cartItem: CartItem): Promise<void> {
     await this._cartItemRepository.remove(cartItem);
     await this.resetAutoIncrement();
