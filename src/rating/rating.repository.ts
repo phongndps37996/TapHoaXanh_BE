@@ -1,4 +1,4 @@
-import { BaseRepository } from 'src/database/abstract.repository';
+import { BaseRepository } from '../database/abstract.repository';
 import { Rating } from './entities/rating.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,9 +15,19 @@ export class RatingRepository extends BaseRepository<Rating> {
 
   async filterRating(query: RatingFilterDto) {
     const { page = 1, limit = 10 } = query;
-    const qb = this.ratingRepository.createQueryBuilder('rating');
 
-    qb.orderBy('rating.rating', 'DESC')
+    const qb = this.ratingRepository
+      .createQueryBuilder('rating')
+      .leftJoin('rating.product', 'product')
+      .leftJoin('rating.users', 'user')
+      .select([
+        'rating.id',
+        'rating.comment',
+        'rating.rating', // rating value
+        'product.name', // product name
+        'user.name', // user name
+      ])
+      .orderBy('rating.rating', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
