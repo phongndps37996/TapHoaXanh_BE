@@ -1,4 +1,5 @@
 import { CloudinaryResponse } from '../cloudinary-response';
+import { FileType } from './icloudinary-service.interface';
 
 export abstract class ICloudinaryRepository {
   abstract uploadToCloudinary(
@@ -7,7 +8,7 @@ export abstract class ICloudinaryRepository {
       folder?: string;
       public_id?: string;
       transformation?: any[];
-      fileType?: 'product' | 'category' | 'avatar';
+      fileType?: FileType;
     },
   ): Promise<CloudinaryResponse>;
 

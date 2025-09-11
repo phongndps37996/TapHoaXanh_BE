@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { CartItem } from '../../cart_item/entities/cart_item.entity';
 import { Cart } from '../entities/cart.entity';
 import { ICartRepository } from '../interfaces/icart-repository.interface';
 
@@ -33,10 +34,18 @@ export class CartRepository implements ICartRepository {
     return this.cartRepository.delete(id);
   }
 
-  async clearCart(userId: number) {
-    await this.cartRepository.delete({ user: { id: userId } });
+  async clearCartItems(userId: number): Promise<void> {
+    // Chỉ lấy cart id, tránh load toàn bộ relations
     await this.resetAutoIncrement();
-    return { success: true };
+    const cart = await this.cartRepository.findOne({
+      where: { user: { id: userId } },
+      select: ['id'],
+    });
+    if (!cart) return;
+
+    // Xóa toàn bộ cart_item theo quan hệ cart.id (không phụ thuộc tên cột DB)
+    const cartItemRepo = this.dataSource.getRepository(CartItem);
+    await cartItemRepo.delete({ cart: { id: cart.id } as any });
   }
 
   private async resetAutoIncrement(): Promise<void> {

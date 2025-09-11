@@ -100,6 +100,15 @@ export class OrderRepository extends BaseRepository<Order> {
     return order;
   }
 
+  async findWithItemsAndProducts(id: number): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: ['orderItem', 'orderItem.product', 'user', 'voucher'],
+    });
+    if (!order) throw new NotFoundException(`Order with id ${id} not found`);
+    return order;
+  }
+
   async updatePayment(id: number, updateData: Partial<Order>): Promise<Order> {
     const order = await this.orderRepository.preload({ id: Number(id), ...updateData });
     if (!order) throw new NotFoundException(`Order with id ${id} not found`);

@@ -13,52 +13,130 @@ export class CartItemService implements ICartItemService {
     private readonly _cartItemRepository: ICartItemRepository,
     private readonly _productRepository: ProductRepository,
   ) {}
-  async addOrUpdateCartItem(cart: Cart, productId: number, quantity: number): Promise<CartItem> {
-    // Validate quantity - bắt lỗi khi quantity = 0
-    if (quantity <= 0) {
+  async addOrUpdateCartItem(
+    cart: Cart,
+    productId: number,
+    quantity: number,
+    action: 'add' | 'increase' | 'decrease' | 'update' = 'add',
+  ): Promise<CartItem | null> {
+    // Validate input - validate cho action 'add' và 'update'
+    if ((action === 'add' || action === 'update') && quantity <= 0) {
       throw new BadRequestException('Số lượng phải lớn hơn 0');
     }
 
-    // Validate product exists - bắt lỗi khi product không tồn tại
+    // Check product tồn tại
     const product = await this._productRepository.findOne(productId);
-
     if (!product) {
       throw new NotFoundException('Sản phẩm không tồn tại');
     }
 
+    // Lấy cart item hiện có (nếu có)
     const existingCartItem = await this._cartItemRepository.findByCartAndProduct(cart.id, productId);
 
-    // Tính giá sản phẩm sau khi áp dụng discount
-    const discountedPrice = product.price * (1 - product.discount / 100);
+    // Xử lý logic dựa trên action
+    switch (action) {
+      case 'add': {
+        // Thêm sản phẩm vào giỏ hàng (cộng dồn quantity)
+        const newQuantity = (existingCartItem?.quantity || 0) + quantity;
 
-    // Validate stock - bắt lỗi khi quantity không đủ
-    if (product.quantity < quantity) {
-      throw new BadRequestException(
-        `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.quantity}, yêu cầu: ${quantity}`,
-      );
-    }
+        // Kiểm tra tồn kho
+        if (newQuantity > product.quantity) {
+          throw new BadRequestException(
+            `Tổng số lượng vượt quá số lượng trong kho. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
+          );
+        }
 
-    if (existingCartItem) {
-      const newQuantity = existingCartItem.quantity + quantity;
+        // Giá sau khi discount
+        const discountedPrice = product.price * (1 - product.discount / 100);
 
-      // Xác nhận tổng số lượng không vượt quá số lượng có sẵn
-      if (newQuantity > product.quantity) {
-        throw new BadRequestException(
-          `Tổng số lượng vượt quá số lượng trong kho. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
-        );
+        if (existingCartItem) {
+          existingCartItem.quantity = newQuantity;
+          existingCartItem.price = discountedPrice;
+          existingCartItem.total_price = discountedPrice * newQuantity;
+          return this._cartItemRepository.save(existingCartItem);
+        }
+
+        const newCartItem = new CartItem(cart, newQuantity, discountedPrice, product);
+        newCartItem.total_price = discountedPrice * newQuantity;
+        return this._cartItemRepository.save(newCartItem);
       }
 
-      existingCartItem.quantity = newQuantity;
-      existingCartItem.price = discountedPrice;
-      existingCartItem.total_price = discountedPrice * newQuantity;
+      case 'update': {
+        // Cập nhật quantity mới (không cộng dồn)
+        const newQuantity = quantity;
 
-      return this._cartItemRepository.save(existingCartItem);
+        // Kiểm tra tồn kho
+        if (newQuantity > product.quantity) {
+          throw new BadRequestException(
+            `Số lượng vượt quá số lượng trong kho. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
+          );
+        }
+
+        // Giá sau khi discount
+        const discountedPrice = product.price * (1 - product.discount / 100);
+
+        if (existingCartItem) {
+          existingCartItem.quantity = newQuantity;
+          existingCartItem.price = discountedPrice;
+          existingCartItem.total_price = discountedPrice * newQuantity;
+          return this._cartItemRepository.save(existingCartItem);
+        }
+
+        const newCartItem = new CartItem(cart, newQuantity, discountedPrice, product);
+        newCartItem.total_price = discountedPrice * newQuantity;
+        return this._cartItemRepository.save(newCartItem);
+      }
+
+      case 'increase': {
+        // Tăng quantity - chỉ hoạt động khi đã có cart item
+        if (!existingCartItem) {
+          throw new BadRequestException('Cart item không tồn tại để tăng quantity');
+        }
+
+        const newQuantity = existingCartItem.quantity + 1;
+
+        // Kiểm tra tồn kho
+        if (newQuantity > product.quantity) {
+          throw new BadRequestException(
+            `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
+          );
+        }
+
+        // Giá sau khi discount
+        const discountedPrice = product.price * (1 - product.discount / 100);
+
+        existingCartItem.quantity = newQuantity;
+        existingCartItem.price = discountedPrice;
+        existingCartItem.total_price = discountedPrice * newQuantity;
+        return this._cartItemRepository.save(existingCartItem);
+      }
+
+      case 'decrease': {
+        // Giảm quantity - chỉ hoạt động khi đã có cart item
+        if (!existingCartItem) {
+          throw new BadRequestException('Cart item không tồn tại để giảm quantity');
+        }
+
+        const newQuantity = existingCartItem.quantity - 1;
+
+        // Nếu quantity = 0, xóa cart item
+        if (newQuantity <= 0) {
+          await this._cartItemRepository.remove(existingCartItem);
+          return null;
+        }
+
+        // Giá sau khi discount
+        const discountedPrice = product.price * (1 - product.discount / 100);
+
+        existingCartItem.quantity = newQuantity;
+        existingCartItem.price = discountedPrice;
+        existingCartItem.total_price = discountedPrice * newQuantity;
+        return this._cartItemRepository.save(existingCartItem);
+      }
+
+      default:
+        throw new BadRequestException('Action không hợp lệ');
     }
-
-    const newCartItem = new CartItem(cart, quantity, discountedPrice, product);
-    newCartItem.total_price = discountedPrice * quantity;
-
-    return this._cartItemRepository.save(newCartItem);
   }
 
   // Tạo cart item với product như một biến thể khi product variant không tồn tại
@@ -75,7 +153,7 @@ export class CartItemService implements ICartItemService {
     }
 
     if (existingCartItem) {
-      const newQuantity = existingCartItem.quantity + quantity;
+      const newQuantity = quantity;
 
       // kiểm tra tổng số lượng không vượt quá số lượng có sẵn
       if (newQuantity > product.quantity) {
@@ -130,7 +208,9 @@ export class CartItemService implements ICartItemService {
     const cartItems = [];
     for (const [productId, quantity] of mergedMap) {
       const cartItem = await this.addOrUpdateCartItem(cart, productId, quantity);
-      cartItems.push(cartItem);
+      if (cartItem) {
+        cartItems.push(cartItem);
+      }
     }
 
     return cartItems;

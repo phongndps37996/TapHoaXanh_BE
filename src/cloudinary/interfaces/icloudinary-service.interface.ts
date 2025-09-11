@@ -1,5 +1,6 @@
 import { CloudinaryResponse } from '../cloudinary-response';
 
+export type FileType = 'product' | 'category' | 'avatar' | 'news';
 export abstract class ICloudinaryService {
   abstract uploadFile(
     file: Express.Multer.File,
@@ -7,7 +8,7 @@ export abstract class ICloudinaryService {
       folder?: string;
       public_id?: string;
       transformation?: any[];
-      fileType?: 'product' | 'category' | 'avatar';
+      fileType?: FileType;
     },
   ): Promise<CloudinaryResponse>;
 
@@ -15,7 +16,7 @@ export abstract class ICloudinaryService {
     files: Express.Multer.File[],
     options?: {
       folder?: string;
-      fileType?: 'product' | 'category' | 'avatar';
+      fileType?: FileType;
     },
   ): Promise<CloudinaryResponse[]>;
 

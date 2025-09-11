@@ -3,7 +3,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryResponse } from '../cloudinary-response';
-import { ICloudinaryService } from '../interfaces/icloudinary-service.interface';
+import { FileType, ICloudinaryService } from '../interfaces/icloudinary-service.interface';
 import { ICloudinaryRepository } from '../interfaces/icloudinary-repository.interface';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class CloudinaryService implements ICloudinaryService {
       folder?: string;
       public_id?: string;
       transformation?: any[];
-      fileType?: 'product' | 'category' | 'avatar';
+      fileType?: FileType;
     } = {},
   ): Promise<CloudinaryResponse> {
     return this.cloudinaryRepository.uploadToCloudinary(file.buffer, options);
@@ -26,7 +26,7 @@ export class CloudinaryService implements ICloudinaryService {
     files: Express.Multer.File[],
     options: {
       folder?: string;
-      fileType?: 'product' | 'category' | 'avatar';
+      fileType?: FileType;
     } = {},
   ): Promise<CloudinaryResponse[]> {
     const uploadPromises = files.map((file) => this.uploadFile(file, options));

@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { Product } from '../products/entities/product.entity';
 import { OrderRepository } from '../order/order.repository';
 import { IpnFailChecksum, IpnInvalidAmount, IpnOrderNotFound, IpnSuccess, ProductCode, VNPay, VnpLocale } from 'vnpay';
 import { CreatePaymentDto } from './dto/payment.dto';
@@ -11,6 +13,7 @@ export class PaymentService {
     private readonly paymentRepository: PaymentRepository,
     private readonly orderRepository: OrderRepository,
     private readonly vnpay: VNPay,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createPayment(createPaymentDto: CreatePaymentDto) {
@@ -60,7 +63,16 @@ export class PaymentService {
     console.log(2222, verify);
 
     if (!verify.isVerified) return IpnFailChecksum;
-    if (!verify.isSuccess) return IpnFailChecksum; // có thể trả IpnUnknownError
+
+    if (!verify.isSuccess) {
+      // Hoàn kho khi thất bại (nếu đã đặt chỗ ở PENDING)
+      const paymentOnFail = await this.paymentRepository.findOneByTxnRefWithOrder(verify.vnp_TxnRef);
+      if (paymentOnFail?.order?.id) {
+        await this.restoreInventoryOnFail(paymentOnFail.order.id);
+        await this.orderRepository.updatePayment(paymentOnFail.order.id, { status: 'fail' as any });
+      }
+      return IpnFailChecksum; // hoặc IpnUnknownError
+    }
 
     console.log(3333);
     // Lấy payment record theo txn_ref để lấy order
@@ -106,6 +118,11 @@ export class PaymentService {
       await this.handleIpn(queryParams);
     } else {
       payment.status = 'failed';
+      // Hoàn kho khi thất bại
+      if (payment.order?.id) {
+        await this.restoreInventoryOnFail(payment.order.id);
+        await this.orderRepository.updatePayment(payment.order.id, { status: 'fail' as any });
+      }
     }
 
     // Lưu vào database
@@ -116,5 +133,26 @@ export class PaymentService {
       message: 'Payment processed successfully',
       payment: savedPayment,
     };
+  }
+
+  private async restoreInventoryOnFail(orderId: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const order = await this.orderRepository.findWithItemsAndProducts(orderId);
+      for (const item of order.orderItem) {
+        const product = item.product;
+        if (!product) continue;
+        product.quantity += item.quantity;
+        await queryRunner.manager.getRepository(Product).save(product);
+      }
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

@@ -1,11 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { NewsService } from './news.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateNewsDto } from './dto/create-news.dto';
-import { UpdateNewsDto } from './dto/update-news.dto';
-import { QueryNewsDto } from './dto/query-news.dto';
 import { PaginatedNewsDto } from './dto/paginated-news.dto';
+import { QueryNewsDto } from './dto/query-news.dto';
+import { UpdateNewsDto } from './dto/update-news.dto';
 import { News } from './entities/news.entity';
+import { NewsService } from './news.service';
 
 @ApiTags('News')
 @Controller('news')
@@ -16,8 +29,15 @@ export class NewsController {
   @ApiOperation({ summary: 'Tạo bài viết mới' })
   @ApiResponse({ status: 201, description: 'Bài viết đã được tạo thành công', type: News })
   @ApiResponse({ status: 400, description: 'Dữ liệu đầu vào không hợp lệ' })
-  create(@Body() createNewsDto: CreateNewsDto): Promise<News> {
-    return this.newsService.create(createNewsDto);
+  @UseInterceptors(FilesInterceptor('images'))
+  create(@Body() createNewsDto: CreateNewsDto, @UploadedFiles() files: Express.Multer.File[]): Promise<News> {
+    return this.newsService.create(createNewsDto, files);
+  }
+
+  @Post('generate-description')
+  @ApiOperation({ summary: 'Tạo bài viết mới' })
+  generateDescription(@Body('name') name: string) {
+    return this.newsService.generateDescription(name);
   }
 
   @Get()
@@ -50,20 +70,6 @@ export class NewsController {
     return this.newsService.findRecent(limit);
   }
 
-  @Get('author/:authorId')
-  @ApiOperation({ summary: 'Lấy bài viết theo tác giả' })
-  @ApiResponse({ status: 200, description: 'Danh sách bài viết của tác giả', type: [News] })
-  findByAuthor(@Param('authorId', ParseIntPipe) authorId: number): Promise<News[]> {
-    return this.newsService.findByAuthor(authorId);
-  }
-
-  @Get('category/:categoryId')
-  @ApiOperation({ summary: 'Lấy bài viết theo danh mục' })
-  @ApiResponse({ status: 200, description: 'Danh sách bài viết theo danh mục', type: [News] })
-  findByCategory(@Param('categoryId', ParseIntPipe) categoryId: number): Promise<News[]> {
-    return this.newsService.findByCategory(categoryId);
-  }
-
   @Get('type')
   @ApiOperation({ summary: 'Lấy bài viết theo loại' })
   @ApiQuery({ name: 'type', description: 'Loại bài viết', example: 'news' })
@@ -72,7 +78,7 @@ export class NewsController {
     return this.newsService.findByType(type);
   }
 
-  @Get(':id')
+  @Get('/detail/:id')
   @ApiOperation({ summary: 'Lấy bài viết theo ID' })
   @ApiResponse({ status: 200, description: 'Chi tiết bài viết', type: News })
   @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
@@ -84,8 +90,13 @@ export class NewsController {
   @ApiOperation({ summary: 'Cập nhật bài viết' })
   @ApiResponse({ status: 200, description: 'Bài viết đã được cập nhật', type: News })
   @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateNewsDto: UpdateNewsDto): Promise<News> {
-    return this.newsService.update(id, updateNewsDto);
+  @UseInterceptors(FilesInterceptor('images'))
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateNewsDto: UpdateNewsDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ): Promise<News> {
+    return this.newsService.update(id, updateNewsDto, files);
   }
 
   @Delete(':id')
@@ -118,16 +129,5 @@ export class NewsController {
   @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
   unlikeNews(@Param('id', ParseIntPipe) id: number): Promise<News> {
     return this.newsService.unlikeNews(id);
-  }
-
-  @Patch(':id/comments-count')
-  @ApiOperation({ summary: 'Cập nhật số lượng bình luận' })
-  @ApiResponse({ status: 200, description: 'Số lượng bình luận đã được cập nhật', type: News })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
-  updateCommentsCount(
-    @Param('id', ParseIntPipe) id: number,
-    @Body('count', ParseIntPipe) count: number,
-  ): Promise<News> {
-    return this.newsService.updateCommentsCount(id, count);
   }
 }

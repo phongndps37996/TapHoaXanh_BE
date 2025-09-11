@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsOptional, IsString, IsInt, Min } from 'class-validator';
 
 export class QueryNewsDto {
@@ -6,12 +7,14 @@ export class QueryNewsDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   page?: number = 1;
 
   @ApiProperty({ description: 'Số lượng bài viết trên mỗi trang', example: 10, required: false })
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   limit?: number = 10;
 
   @ApiProperty({ description: 'Từ khóa tìm kiếm', example: 'tin tức', required: false })
@@ -23,16 +26,4 @@ export class QueryNewsDto {
   @IsOptional()
   @IsString()
   type?: string;
-
-  @ApiProperty({ description: 'ID danh mục', example: 1, required: false })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  category_id?: number;
-
-  @ApiProperty({ description: 'ID tác giả', example: 1, required: false })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  author_id?: number;
 }

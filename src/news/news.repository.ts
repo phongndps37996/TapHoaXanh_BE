@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { News } from './entities/news.entity';
 import { BaseRepository } from '../database/abstract.repository';
 import { QueryNewsDto } from './dto/query-news.dto';
-import { PaginatedNewsDto } from './dto/paginated-news.dto';
+import { News } from './entities/news.entity';
 
 @Injectable()
 export class NewsRepository extends BaseRepository<News> {
@@ -29,52 +28,30 @@ export class NewsRepository extends BaseRepository<News> {
     });
   }
 
-  async findWithPagination(queryDto: QueryNewsDto): Promise<PaginatedNewsDto> {
-    const { search, type, category_id, author_id } = queryDto;
-    const page = queryDto.page || 1;
-    const limit = queryDto.limit || 10;
-    const skip = (page - 1) * limit;
+  async findWithPagination(query: QueryNewsDto) {
+    const { search, page = 1, limit = 10 } = query;
+    const qb = this.newsRepository.createQueryBuilder('news');
 
-    const queryBuilder = this.newsRepository
-      .createQueryBuilder('news')
-      .leftJoinAndSelect('news.author', 'author')
-      .leftJoinAndSelect('news.category', 'category');
-
-    // Apply filters
     if (search) {
-      queryBuilder.andWhere('(news.name LIKE :search OR news.description LIKE :search OR news.summary LIKE :search)', {
+      qb.andWhere('(news.name LIKE :search OR news.description LIKE :search)', {
         search: `%${search}%`,
       });
     }
 
-    if (type) {
-      queryBuilder.andWhere('news.type = :type', { type });
-    }
+    qb.orderBy('news.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
-    if (category_id) {
-      queryBuilder.andWhere('news.category_id = :category_id', { category_id });
-    }
-
-    if (author_id) {
-      queryBuilder.andWhere('news.author_id = :author_id', { author_id });
-    }
-
-    // Get total count
-    const total = await queryBuilder.getCount();
-
-    // Apply pagination and ordering
-    const data = await queryBuilder.orderBy('news.createdAt', 'DESC').skip(skip).take(limit).getMany();
-
-    const totalPages = Math.ceil(total / limit);
+    const [items, total] = await qb.getManyAndCount();
 
     return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -88,26 +65,6 @@ export class NewsRepository extends BaseRepository<News> {
 
   async decrementLikes(id: number): Promise<void> {
     await this.newsRepository.decrement({ id }, 'likes', 1);
-  }
-
-  async updateCommentsCount(id: number, count: number): Promise<void> {
-    await this.newsRepository.update(id, { comments_count: count });
-  }
-
-  async findByAuthor(authorId: number): Promise<News[]> {
-    return this.newsRepository.find({
-      where: { author_id: authorId },
-      relations: ['author', 'category'],
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async findByCategory(categoryId: number): Promise<News[]> {
-    return this.newsRepository.find({
-      where: { category_id: categoryId },
-      relations: ['author', 'category'],
-      order: { createdAt: 'DESC' },
-    });
   }
 
   async findByType(type: string): Promise<News[]> {

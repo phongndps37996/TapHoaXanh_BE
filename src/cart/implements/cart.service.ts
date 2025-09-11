@@ -24,18 +24,28 @@ export class CartService implements ICartService {
 
   async addToCart(userId: number, productId: number, quantity: number) {
     const cart = await this.FindOrCreateCart(userId);
-    // 2. Gọi CartItemService để xử lý logic cart item
-    cart && (await this._cartItemService.addOrUpdateCartItem(cart, productId, quantity));
+    // Thêm sản phẩm vào giỏ hàng (cộng dồn quantity)
+    cart && (await this._cartItemService.addOrUpdateCartItem(cart, productId, quantity, 'add'));
     const result = await this._cartRepository.findCartByUserId(userId);
     return result;
   }
 
-  async updateCart(userId: number, productId: number, quantity: number) {
+  async updateCart(
+    userId: number,
+    productId: number,
+    quantityOrOne: number,
+    action: 'update' | 'increase' | 'decrease' = 'update',
+  ) {
     const cart = await this.FindOrCreateCart(userId);
 
-    await this._cartItemService.addOrUpdateCartItem(cart, productId, quantity);
+    if (action === 'update') {
+      await this._cartItemService.addOrUpdateCartItem(cart, productId, quantityOrOne, 'update');
+    } else if (action === 'increase') {
+      await this._cartItemService.addOrUpdateCartItem(cart, productId, 1, 'increase');
+    } else if (action === 'decrease') {
+      await this._cartItemService.addOrUpdateCartItem(cart, productId, 1, 'decrease');
+    }
 
-    // Trả về cart đã cập nhật
     const result = await this._cartRepository.findCartByUserId(userId);
     return result;
   }
@@ -59,5 +69,10 @@ export class CartService implements ICartService {
     // Trả về cart đã cập nhật
     const result = await this._cartRepository.findCartByUserId(userId);
     return result;
+  }
+
+  async clearCartItems(userId: number) {
+    await this._cartRepository.clearCartItems(userId);
+    return await this._cartRepository.findCartByUserId(userId);
   }
 }
