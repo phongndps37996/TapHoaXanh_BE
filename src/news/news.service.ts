@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { GeminiService } from 'src/openai/gemini.service';
+import { GeminiService } from '../openai/gemini.service';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { PaginatedNewsDto } from './dto/paginated-news.dto';
 import { QueryNewsDto } from './dto/query-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { News } from './entities/news.entity';
 import { NewsRepository } from './news.repository';
-import { ICloudinaryService } from 'src/cloudinary/interfaces/icloudinary-service.interface';
+import { ICloudinaryService } from '../cloudinary/interfaces/icloudinary-service.interface';
 
 @Injectable()
 export class NewsService {

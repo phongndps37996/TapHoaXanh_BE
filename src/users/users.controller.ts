@@ -24,7 +24,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/updatePassword-user.dto';
 import { IUsersService } from './interfaces/iusers-service.interface';
 import { UploadAvatarResponseDto } from './dto/upload-avatar.dto';
-import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
 
 @ApiTags('Users')
 @Controller('users')

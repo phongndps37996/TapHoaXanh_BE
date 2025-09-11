@@ -5,8 +5,8 @@ import { Voucher } from './entities/voucher.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderModule } from '../order/order.module';
 import { VoucherRepository } from './voucher.repository';
-import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
-import { AuthModule } from 'src/auth/auth.module';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Voucher]), OrderModule, AuthModule],

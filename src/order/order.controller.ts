@@ -6,7 +6,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
-import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
 
 @Controller('order')
 export class OrderController {

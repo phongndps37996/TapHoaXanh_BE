@@ -5,9 +5,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
 import { CategoryRepository } from './categories.reposirory';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
-import { ProductsModule } from 'src/products/products.module';
-import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
-import { AuthModule } from 'src/auth/auth.module';
+import { ProductsModule } from '../products/products.module';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Category]), CloudinaryModule, forwardRef(() => ProductsModule), AuthModule],

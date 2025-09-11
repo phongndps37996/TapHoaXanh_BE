@@ -4,7 +4,7 @@ import { CartItem } from '../entities/cart_item.entity';
 import { ICartItemRepository } from '../interfaces/icart_item-repository.interface';
 import { Cart } from '../../cart/entities/cart.entity';
 import { ProductRepository } from '../../products/products.repository';
-import { Product } from 'src/products/entities/product.entity';
+import { Product } from '../../products/entities/product.entity';
 
 @Injectable()
 export class CartItemService implements ICartItemService {

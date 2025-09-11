@@ -17,8 +17,8 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { FilterCategoryDto } from './dto/filter-category.dto';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { IsAdminGuard } from 'src/auth/guards/IsAdmin.guard';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 
 @Controller('categories')
 export class CategoriesController {
