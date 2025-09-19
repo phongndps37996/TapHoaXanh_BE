@@ -81,6 +81,6 @@ export class UsersRepository implements IUsersRepository {
   }
 
   async updateEmailVerification(id: number, isVerified: boolean): Promise<void> {
-    await this.usersRepository.update({ id }, { isEmailVerified: isVerified });
+    await this.usersRepository.update({ id }, { isEmailVerified: isVerified }); 
   }
 }

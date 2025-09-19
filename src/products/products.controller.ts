@@ -60,6 +60,7 @@ export class ProductsController {
     return this.productsService.getAllProductNullCate();
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtGuard, IsAdminGuard)
   @Get('search')
   async Search(@Query() query: ProductFilterDto) {

@@ -35,4 +35,9 @@ export class OrderItemController {
   remove(@Param('id') id: string) {
     return this.orderItemService.remove(+id);
   }
+
+  @Get('/by-product/:id')
+  findAllOrderItemByProductId(@Param('id') id: number) {
+    return this.orderItemService.findAllOrderItemByProductId(id);
+  }
 }

@@ -54,4 +54,8 @@ export class OrderItemService {
   remove(id: number) {
     return `This action removes a #${id} orderItem`;
   }
+
+  async findAllOrderItemByProductId(productId: number) {
+    return await this.orderItemRepository.findAllOrderItemByProductId(productId);
+  }
 }

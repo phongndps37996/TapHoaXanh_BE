@@ -61,31 +61,56 @@ export class NewsService {
     const updatedNews = this.newsRepository.create({ ...existingNews, ...updateNewsDto });
 
     const oldImages = existingNews.images || [];
-    console.log('🚀 ~ NewsService ~ update ~ oldImages:', oldImages);
-    const clientImagesRaw = updateNewsDto.images || [];
-    const clientImages: string[] = Array.isArray(clientImagesRaw)
-      ? clientImagesRaw
-      : typeof clientImagesRaw === 'string'
-        ? JSON.parse(clientImagesRaw)
-        : [];
+    let finalImages = [...oldImages]; // mặc định giữ nguyên ảnh cũ
 
-    console.log('🚀 clientImages:', clientImages);
+    // Nếu client có truyền field images
+    if (updateNewsDto.images !== undefined) {
+      const clientImages = this.parseImagesField(updateNewsDto.images);
 
-    // 1. Xác định và xoá ảnh không còn dùng
-    const imagesToDelete = await this.getImagesToDelete(oldImages, clientImages);
-    console.log('🚀 ~ NewsService ~ update ~ imagesToDelete:', imagesToDelete);
-    if (imagesToDelete.length > 0) await this.deleteImages(imagesToDelete);
+      // 1. Xác định và xoá ảnh không còn dùng
+      const imagesToDelete = await this.getImagesToDelete(oldImages, clientImages);
+      if (imagesToDelete.length > 0) {
+        await this.deleteImages(imagesToDelete);
+      }
 
-    // 2. Kiểm tra các ảnh cũ có được giữ lại không
-    let finalImages = clientImages.filter((img) => oldImages.includes(img));
+      // 2. Giữ lại ảnh cũ còn được client truyền
+      finalImages = clientImages.filter((img) => oldImages.includes(img));
 
-    // 3. Upload ảnh mới nếu có
-    const newUploadedUrls = await this.uploadNewImages(images || []);
-    finalImages = [...finalImages, ...newUploadedUrls];
+      // 3. Upload ảnh mới nếu có
+      const newUploadedUrls = await this.uploadNewImages(images || []);
+      finalImages = [...finalImages, ...newUploadedUrls];
+    }
 
     updatedNews.images = finalImages;
-
     return this.newsRepository.save(updatedNews);
+  }
+
+  /**
+   * Helper: ép kiểu và parse field images từ client
+   */
+  private parseImagesField(imagesField: unknown): string[] {
+    if (Array.isArray(imagesField)) {
+      return imagesField as string[];
+    }
+
+    if (typeof imagesField === 'string') {
+      const str = imagesField.trim();
+
+      // Nếu là JSON array (["url1","url2",...])
+      if (str.startsWith('[') && str.endsWith(']')) {
+        try {
+          return JSON.parse(str);
+        } catch (e) {
+          console.error('❌ Lỗi parse JSON images:', e);
+          return [];
+        }
+      }
+
+      // Nếu chỉ là một URL string
+      return [str];
+    }
+
+    return [];
   }
 
   async getImagesToDelete(oldImages: string[], clientImages: string[]): Promise<string[]> {

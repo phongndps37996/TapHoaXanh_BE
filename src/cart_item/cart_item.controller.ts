@@ -4,6 +4,7 @@ import { ICartService } from '../cart/interfaces/icart-service.interface';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CreateCartItemDto } from './dto/create-cart_item.dto';
+import { RemoveCartItemsDto } from './dto/remove-cart-items.dto';
 
 @Controller('cart-item')
 export default class CartItemController {
@@ -33,8 +34,8 @@ export default class CartItemController {
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
   @Delete()
-  async removeByIds(@Body('ids') ids: number[], @Req() req: any) {
-    return this.cartItemService.removeByIds(ids, req.user.sub);
+  async removeByIds(@Body() dto: RemoveCartItemsDto, @Req() req: any) {
+    return this.cartItemService.removeByIds(dto.ids, req.user.sub);
   }
 
   @ApiOperation({ summary: 'Thêm hoặc cập nhật sản phẩm trong giỏ hàng' })
@@ -44,7 +45,7 @@ export default class CartItemController {
   async addOrUpdateCartItem(@Body() dto: CreateCartItemDto, @Req() req: any) {
     const userId = req.user.sub;
     const cart = await this.cartService.FindOrCreateCart(userId);
-    return await this.cartItemService.addOrUpdateCartItem(cart, dto.productId, dto.quantity, dto.action || 'add');
+    return await this.cartItemService.addOrUpdateCartItem(cart, [dto.productId], dto.quantity, dto.action || 'add');
   }
 
   // @ApiOperation({ summary: 'Tăng/giảm số lượng sản phẩm trong giỏ hàng (nút +/-)' })

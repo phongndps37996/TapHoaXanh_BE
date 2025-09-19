@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ICloudinaryService } from '../cloudinary/interfaces/icloudinary-service.interface';
 import { ProductRepository } from '../products/products.repository';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
@@ -84,5 +84,12 @@ export class ProductImagesService {
     return {
       message: `Xoá hình ảnh sản phẩm thành công`,
     };
+  }
+
+  async findByProductId(id: number) {
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid product id');
+    }
+    return await this.productImagesRepository.findAllByProductId(id);
   }
 }

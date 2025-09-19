@@ -43,8 +43,7 @@ export class ProductRepository extends BaseRepository<Product> {
     }
 
     if (brand) {
-      qb.leftJoin('product.brand', 'brand');
-      qb.andWhere('LOWER(brand.name) LIKE LOWER(:brand)', { brand });
+      qb.andWhere('product.brand = :brand', { brand });
     }
 
     if (category !== undefined) {

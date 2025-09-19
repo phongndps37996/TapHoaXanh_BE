@@ -10,3 +10,11 @@ export enum TokenActionType {
   VERIFY_EMAIL = 'verify',
   RESET_PASSWORD = 'reset',
 }
+export enum CartAction {
+  UPDATE = 'update',
+  INCREASE = 'increase',
+  DECREASE = 'decrease',
+  REMOVE = 'remove',
+  REMOVE_MULTIPLE = 'remove-multiple',
+  ADD = 'add',
+}

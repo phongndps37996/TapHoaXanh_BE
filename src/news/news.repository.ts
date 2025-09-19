@@ -16,7 +16,6 @@ export class NewsRepository extends BaseRepository<News> {
 
   async findAllWithRelations(): Promise<News[]> {
     return this.newsRepository.find({
-      relations: ['author', 'category'],
       order: { createdAt: 'DESC' },
     });
   }

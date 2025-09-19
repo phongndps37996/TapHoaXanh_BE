@@ -22,7 +22,7 @@ export class VoucherService {
   }
 
   findAll() {
-    return `This action returns all voucher`;
+    return this.voucherRepository.findAll();
   }
 
   async filterAllVoucher(query: FilterVoucherDto) {

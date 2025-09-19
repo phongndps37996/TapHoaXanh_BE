@@ -72,4 +72,18 @@ export class RatingService {
   async filterRating(query: RatingFilterDto) {
     return await this.ratingRepository.filterRating(query);
   }
+
+  async deletedRatingByProductId(product_id: number) {
+    const rating = await this.ratingRepository.findAllRatingByProductId(product_id);
+    console.log('🚀 ~ RatingService ~ deletedRatingByProductId ~ rating:', rating);
+    if (rating.length === 0) {
+      throw new NotFoundException(`Rating with ID ${product_id} not found`);
+    }
+    await this.ratingRepository.deletedRatingByProductId(product_id);
+    return { message: 'Xóa thành công' };
+  }
+
+  async getAllRatingsByProductId(productId: number): Promise<Rating[]> {
+    return await this.ratingRepository.getAllRatingsByProductId(productId);
+  }
 }

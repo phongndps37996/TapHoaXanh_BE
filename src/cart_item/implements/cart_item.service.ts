@@ -15,7 +15,7 @@ export class CartItemService implements ICartItemService {
   ) {}
   async addOrUpdateCartItem(
     cart: Cart,
-    productId: number,
+    productIds: number[],
     quantity: number,
     action: 'add' | 'increase' | 'decrease' | 'update' = 'add',
   ): Promise<CartItem | null> {
@@ -25,13 +25,14 @@ export class CartItemService implements ICartItemService {
     }
 
     // Check product tồn tại
-    const product = await this._productRepository.findOne(productId);
+    const product = await this._productRepository.findOne(productIds[0]);
+
     if (!product) {
       throw new NotFoundException('Sản phẩm không tồn tại');
     }
 
     // Lấy cart item hiện có (nếu có)
-    const existingCartItem = await this._cartItemRepository.findByCartAndProduct(cart.id, productId);
+    const existingCartItem = await this._cartItemRepository.findByCartAndProduct(cart.id, productIds[0]);
 
     // Xử lý logic dựa trên action
     switch (action) {
@@ -87,52 +88,52 @@ export class CartItemService implements ICartItemService {
         return this._cartItemRepository.save(newCartItem);
       }
 
-      case 'increase': {
-        // Tăng quantity - chỉ hoạt động khi đã có cart item
-        if (!existingCartItem) {
-          throw new BadRequestException('Cart item không tồn tại để tăng quantity');
-        }
+      // case 'increase': {
+      //   // Tăng quantity - chỉ hoạt động khi đã có cart item
+      //   if (!existingCartItem) {
+      //     throw new BadRequestException('Cart item không tồn tại để tăng quantity');
+      //   }
 
-        const newQuantity = existingCartItem.quantity + 1;
+      //   // const newQuantity = currenttQuantity + (newQuantityInput - currenttQuantity);
 
-        // Kiểm tra tồn kho
-        if (newQuantity > product.quantity) {
-          throw new BadRequestException(
-            `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.quantity}, yêu cầu: ${newQuantity}`,
-          );
-        }
+      //   // Kiểm tra tồn kho
+      //   if (newQuantityInput > product.quantity) {
+      //     throw new BadRequestException(
+      //       `Số lượng sản phẩm trong kho không đủ. Hiện có: ${product.quantity}, yêu cầu: ${newQuantityInput}`,
+      //     );
+      //   }
 
-        // Giá sau khi discount
-        const discountedPrice = product.price * (1 - product.discount / 100);
+      //   // Giá sau khi discount
+      //   const discountedPrice = product.price * (1 - product.discount / 100);
 
-        existingCartItem.quantity = newQuantity;
-        existingCartItem.price = discountedPrice;
-        existingCartItem.total_price = discountedPrice * newQuantity;
-        return this._cartItemRepository.save(existingCartItem);
-      }
+      //   existingCartItem.quantity = newQuantityInput;
+      //   existingCartItem.price = discountedPrice;
+      //   existingCartItem.total_price = discountedPrice * newQuantityInput;
+      //   return this._cartItemRepository.save(existingCartItem);
+      // }
 
-      case 'decrease': {
-        // Giảm quantity - chỉ hoạt động khi đã có cart item
-        if (!existingCartItem) {
-          throw new BadRequestException('Cart item không tồn tại để giảm quantity');
-        }
+      // case 'decrease': {
+      //   // Giảm quantity - chỉ hoạt động khi đã có cart item
+      //   if (!existingCartItem) {
+      //     throw new BadRequestException('Cart item không tồn tại để giảm quantity');
+      //   }
 
-        const newQuantity = existingCartItem.quantity - 1;
+      //   const newQuantity = quantity;
 
-        // Nếu quantity = 0, xóa cart item
-        if (newQuantity <= 0) {
-          await this._cartItemRepository.remove(existingCartItem);
-          return null;
-        }
+      //   // Nếu quantity = 0, xóa cart item
+      //   if (newQuantity <= 0) {
+      //     await this._cartItemRepository.remove(existingCartItem);
+      //     return null;
+      //   }
 
-        // Giá sau khi discount
-        const discountedPrice = product.price * (1 - product.discount / 100);
+      //   // Giá sau khi discount
+      //   const discountedPrice = product.price * (1 - product.discount / 100);
 
-        existingCartItem.quantity = newQuantity;
-        existingCartItem.price = discountedPrice;
-        existingCartItem.total_price = discountedPrice * newQuantity;
-        return this._cartItemRepository.save(existingCartItem);
-      }
+      //   existingCartItem.quantity = newQuantity;
+      //   existingCartItem.price = discountedPrice;
+      //   existingCartItem.total_price = discountedPrice * newQuantity;
+      //   return this._cartItemRepository.save(existingCartItem);
+      // }
 
       default:
         throw new BadRequestException('Action không hợp lệ');
@@ -192,9 +193,13 @@ export class CartItemService implements ICartItemService {
     await this._cartItemRepository.remove(cartItem);
   }
 
-  async removeByIds(ids: number[], userId: number): Promise<void> {
+  async removeByIds(ids: number[], userId: number): Promise<CartItem[]> {
     // Xóa nhiều cart items theo IDs và đảm bảo thuộc về user
-    await this._cartItemRepository.removeByIds(ids, userId);
+    const cartItems = await this._cartItemRepository.removeByIds(ids, userId);
+    if (cartItems.length === 0) {
+      throw new NotFoundException('Cart item không tồn tại');
+    }
+    return cartItems;
   }
 
   async addMultipleCartItems(cart: Cart, items: Array<{ productId: number; quantity: number }>): Promise<CartItem[]> {
@@ -207,12 +212,16 @@ export class CartItemService implements ICartItemService {
 
     const cartItems = [];
     for (const [productId, quantity] of mergedMap) {
-      const cartItem = await this.addOrUpdateCartItem(cart, productId, quantity);
+      const cartItem = await this.addOrUpdateCartItem(cart, [productId], quantity);
       if (cartItem) {
         cartItems.push(cartItem);
       }
     }
 
     return cartItems;
+  }
+
+  async findByCartAndProduct(cartId: number, productId: number): Promise<CartItem | null> {
+    return this._cartItemRepository.findByCartAndProduct(cartId, productId);
   }
 }

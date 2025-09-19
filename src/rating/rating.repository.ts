@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
 import { RatingFilterDto } from './dto/Filter-rating.dto';
+
 @Injectable()
 export class RatingRepository extends BaseRepository<Rating> {
   constructor(
@@ -42,5 +43,33 @@ export class RatingRepository extends BaseRepository<Rating> {
         lastPage: Math.ceil(total / limit),
       },
     };
+  }
+
+  async deletedRatingByProductId(productId: number) {
+    return await this.ratingRepository.delete({ product: { id: productId } });
+  }
+
+  async findAllRatingByProductId(productId: number): Promise<Rating[]> {
+    return await this.ratingRepository.find({
+      where: { product: { id: Number(productId) } }, // 👈 ép sang number
+    });
+  }
+
+  async getAllRatingsByProductId(productId: number): Promise<Rating[]> {
+    return await this.ratingRepository
+      .createQueryBuilder('r')
+      .select([
+        'r.id AS ratingId',
+        'r.rating AS rating',
+        'u.name AS userName',
+        'p.name AS productName',
+        'p.id AS productId',
+        'r.comment AS comment',
+        'r.createdAt AS createdAt',
+      ])
+      .innerJoin('r.product', 'p')
+      .innerJoin('r.users', 'u')
+      .where('p.id = :productId', { productId })
+      .getRawMany();
   }
 }

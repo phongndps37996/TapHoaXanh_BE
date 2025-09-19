@@ -6,6 +6,8 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { ProductFilterDto } from './dto/Filter-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductRepository } from './products.repository';
+import { v4 as uuidv4 } from 'uuid';
+import { OrderItemRepository } from 'src/order_item/order_item.repository';
 @Injectable()
 export class ProductsService {
   constructor(
@@ -13,10 +15,12 @@ export class ProductsService {
     private readonly categoryRepository: CategoryRepository,
     private readonly brandRepository: BrandRepository,
     private readonly cloudinaryService: ICloudinaryService,
+    private readonly orderItemRepository: OrderItemRepository,
   ) {}
 
   async create(createProductDto: CreateProductDto, image: Express.Multer.File) {
     const product = this.productRepository.create(createProductDto);
+    product.barcode = uuidv4();
     const existProductByCode = await this.productRepository.findOneByField('barcode', createProductDto.barcode);
     if (existProductByCode) throw new BadRequestException('Mã code này đã được sử dụng');
 
@@ -107,6 +111,10 @@ export class ProductsService {
     const existProduct = await this.productRepository.findById(id);
     if (!existProduct) throw new NotFoundException('Sản phẩm không tồn tại');
 
+    const orderItemExist = await this.orderItemRepository.findAllOrderItemByProductId(id);
+    if (orderItemExist.length > 0) {
+      throw new BadRequestException('Sản phẩm đang được mua');
+    }
     this.cloudinaryService.deleteFile(existProduct.images);
 
     await this.productRepository.delete(id);

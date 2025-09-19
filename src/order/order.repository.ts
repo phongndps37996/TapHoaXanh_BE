@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { BaseRepository } from '../database/abstract.repository';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -11,13 +11,21 @@ export class OrderRepository extends BaseRepository<Order> {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    private readonly dataSource: DataSource,
   ) {
     super(orderRepository);
   }
 
   async findAll(): Promise<Order[]> {
     return this.orderRepository.find({
-      relations: ['users', 'voucher', 'orderItem'],
+      relations: ['voucher', 'orderItem'],
+    });
+  }
+  async findAllOwned(userId: number): Promise<Order[]> {
+    return this.orderRepository.find({
+      where: { user: { id: userId } },
+      relations: ['voucher', 'orderItem', 'payments'],
+      select: ['id', 'order_code', 'status', 'total_price', 'createdAt'],
     });
   }
 
@@ -201,5 +209,8 @@ export class OrderRepository extends BaseRepository<Order> {
       ])
       .where('o.order_code = :orderCode', { orderCode })
       .getRawMany();
+  }
+  async resetAutoIncrement(): Promise<void> {
+    await this.dataSource.query('ALTER TABLE order AUTO_INCREMENT = 1');
   }
 }

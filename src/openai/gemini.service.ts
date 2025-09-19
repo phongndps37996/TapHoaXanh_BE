@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
+import removeMd from 'remove-markdown';
 @Injectable()
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -19,7 +19,14 @@ export class GeminiService {
 
     const prompt = `Hãy viết một bài viết chi tiết về chủ đề: ${topic}`;
     const result = await model.generateContent(prompt);
+    const stripMarkdown = this.stripMarkdown(result.response.text());
+    return stripMarkdown;
+  }
 
-    return result.response.text();
+  stripMarkdown(text: string): string {
+    return removeMd(text, {
+      listUnicodeChar: '-', // thay * thành -
+      useImgAltText: false, // thêm dòng này để satisfy type
+    }).trim();
   }
 }

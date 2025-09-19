@@ -13,6 +13,7 @@ import { DataSource } from 'typeorm';
 import { OrderRepository } from './order.repository';
 import { Product } from '../products/entities/product.entity';
 import { OrderItem } from '../order_item/entities/order_item.entity';
+import { Voucher } from '../voucher/entities/voucher.entity';
 
 @Injectable()
 export class OrderService {
@@ -57,6 +58,9 @@ export class OrderService {
 
   async filterAllOrder(query: FilterOrderDto) {
     return this.orderRepository.filterAllOrder(query);
+  }
+  async findAllOwned(userId: number): Promise<Order[]> {
+    return this.orderRepository.findAllOwned(userId);
   }
 
   async findOne(id: number): Promise<Order> {
@@ -171,6 +175,43 @@ export class OrderService {
         throw new NotFoundException('User này không tồn tại');
       }
       order.user = user;
+
+      // Xử lý voucher nếu có
+      if (createOrderDto.voucherId) {
+        const voucher = await queryRunner.manager
+          .getRepository(Voucher)
+          .findOne({ where: { id: createOrderDto.voucherId } });
+
+        if (!voucher) {
+          throw new NotFoundException('Voucher không tồn tại');
+        }
+
+        // Kiểm tra voucher còn hạn và còn số lượng
+        if (voucher.quantity <= 0) {
+          throw new BadRequestException('Voucher đã hết lượt sử dụng');
+        }
+
+        if (new Date() < voucher.start_date || new Date() > voucher.end_date) {
+          throw new BadRequestException('Voucher không còn hiệu lực');
+        }
+
+        // Kiểm tra điều kiện sử dụng voucher
+        if (totalPrice < voucher.min_order_value) {
+          throw new BadRequestException(`Đơn hàng phải tối thiểu ${voucher.min_order_value} để sử dụng voucher này`);
+        }
+
+        // Trừ số lượng voucher
+        voucher.quantity -= 1;
+        if (voucher.quantity === 0) {
+          voucher.is_used = true;
+        }
+
+        await queryRunner.manager.getRepository(Voucher).save(voucher);
+
+        // Gán voucher vào order
+        order.voucher = [voucher];
+      }
+
       const savedOrder = await queryRunner.manager.getRepository(Order).save(order as any);
 
       // Tạo order items trực tiếp trong transaction

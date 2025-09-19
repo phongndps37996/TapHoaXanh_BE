@@ -47,7 +47,6 @@ export class PaymentService {
 
   handleReturn(query: any) {
     const verify = this.vnpay.verifyReturnUrl(query);
-
     if (!verify.isVerified) return { success: false, message: 'Xác thực dữ liệu thất bại' };
     if (!verify.isSuccess) return { success: false, message: 'Thanh toán thất bại' };
 

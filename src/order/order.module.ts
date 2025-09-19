@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { OrderController } from './order.controller';
@@ -9,9 +9,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '../auth/auth.module';
 import { CartItemModule } from '../cart_item/cart_item.module';
 import { OrderItemModule } from '../order_item/order_item.module';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order]), UsersModule, JwtModule, AuthModule, CartItemModule, OrderItemModule],
+  imports: [
+    TypeOrmModule.forFeature([Order]),
+    UsersModule,
+    JwtModule,
+    AuthModule,
+    CartItemModule,
+    OrderItemModule,
+    forwardRef(() => PaymentModule),
+  ],
   controllers: [OrderController],
   providers: [OrderService, OrderRepository],
   exports: [OrderService, OrderRepository],

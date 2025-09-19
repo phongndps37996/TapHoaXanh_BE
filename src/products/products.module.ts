@@ -9,6 +9,7 @@ import { ProductRepository } from './products.repository';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
 import { AuthModule } from '../auth/auth.module';
+import { OrderItemModule } from 'src/order_item/order_item.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from '../auth/auth.module';
     BrandModule,
     CloudinaryModule,
     AuthModule,
+    OrderItemModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService, ProductRepository, IsAdminGuard],

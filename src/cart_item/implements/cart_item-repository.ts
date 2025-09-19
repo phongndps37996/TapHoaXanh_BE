@@ -49,12 +49,13 @@ export class CartItemRepository implements ICartItemRepository {
     return items.filter((item) => item.cart.user.id === userId);
   }
 
-  async removeByIds(ids: number[], userId: number): Promise<void> {
+  async removeByIds(ids: number[], userId: number): Promise<CartItem[]> {
     // Xóa nhiều cart items theo IDs và đảm bảo thuộc về user
     const items = await this.findByIds(ids, userId);
     for (const item of items) {
       await this.remove(item);
     }
+    return items;
   }
 
   async resetAutoIncrement(): Promise<void> {

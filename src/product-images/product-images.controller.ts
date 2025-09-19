@@ -38,6 +38,11 @@ export class ProductImagesController {
     return this.productImagesService.findOne(+id);
   }
 
+  @Get('/by-product/:id')
+  findByProductId(@Param('id') id: string) {
+    return this.productImagesService.findByProductId(+id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateProductImageDto: UpdateProductImageDto) {
     return this.productImagesService.update(+id, updateProductImageDto);

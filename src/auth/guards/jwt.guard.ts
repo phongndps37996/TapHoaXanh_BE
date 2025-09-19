@@ -13,7 +13,6 @@ export class JwtGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const access_Token = this.extractTokenFromHeader(request);
-    // console.log('🚀 ~ JwtGuard ~ canActivate ~ access_Token:', access_Token);
 
     if (!access_Token) {
       throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');

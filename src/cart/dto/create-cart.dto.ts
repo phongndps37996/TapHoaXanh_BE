@@ -3,8 +3,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, Min } from 'class-validator';
 
 export class CreateCartDto {
-  @IsNumber()
-  @ApiProperty({ description: 'ID của sản phẩm biến thể' })
+  @IsNumber({})
+  @ApiProperty({ description: 'ID của sản phẩm biến thể', type: Number, example: 1 })
   productId!: number;
 
   @IsNumber()
