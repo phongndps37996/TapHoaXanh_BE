@@ -73,9 +73,17 @@ async function bootstrap() {
 
 // Export handler for Vercel
 export default async function handler(req: any, res: any) {
-  const app = await bootstrap();
-  return app(req, res);
+  try {
+    const app = await bootstrap();
+    return app(req, res);
+  } catch (error) {
+    console.error('Handler error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
 }
+
+// Also export as named export for compatibility
+export { handler };
 
 // For local development
 console.log('NODE_ENV:', process.env.NODE_ENV);
