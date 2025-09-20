@@ -92,7 +92,6 @@ export class CloudinaryRepository implements ICloudinaryRepository {
     try {
       // Cloudinary tự động tạo thư mục khi upload file
       // Không cần gọi API riêng để tạo thư mục
-      console.log(`Thư mục ${folderName} sẽ được tạo tự động khi upload file đầu tiên`);
     } catch (error) {
       console.warn(`Không thể tạo thư mục ${folderName}:`, error);
     }

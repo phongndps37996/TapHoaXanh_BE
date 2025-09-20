@@ -15,8 +15,6 @@ export class CategoriesService {
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto, image: Express.Multer.File) {
-    console.log(11111);
-
     // Kiểm tra category đã tồn tại (giả sử kiểm tra theo tên)
     const category = this.categoryRepository.create(createCategoryDto);
     const existCategory = await this.categoryRepository.findByName(createCategoryDto.name);
@@ -93,7 +91,6 @@ export class CategoriesService {
     if (!existCategory) throw new NotFoundException('Danh mục không tồn tại');
 
     const existProduct = await this.productRepository.getAllProductByCateId(id);
-    console.log('🚀 ~ CategoriesService ~ remove ~ existProduct:', existProduct, existCategory);
     if (existProduct.length > 0) {
       existProduct.map((product) => this.productRepository.save({ ...product, category: null }));
     }

@@ -75,7 +75,6 @@ export class RatingService {
 
   async deletedRatingByProductId(product_id: number) {
     const rating = await this.ratingRepository.findAllRatingByProductId(product_id);
-    console.log('🚀 ~ RatingService ~ deletedRatingByProductId ~ rating:', rating);
     if (rating.length === 0) {
       throw new NotFoundException(`Rating with ID ${product_id} not found`);
     }

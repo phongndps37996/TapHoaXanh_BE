@@ -71,29 +71,25 @@ async function bootstrap() {
   return expressApp;
 }
 
-// Export handler for Vercel
+// Export handler cho Vercel
 export default async function handler(req: any, res: any) {
   try {
     const app = await bootstrap();
     return app(req, res);
   } catch (error) {
-    console.error('Handler error:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Lỗi handler:', error);
+    return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
   }
 }
 
-// Also export as named export for compatibility
+// Cũng export như named export để tương thích
 export { handler };
 
-// For local development
-console.log('NODE_ENV:', process.env.NODE_ENV);
+// Cho môi trường phát triển local
 if (process.env.NODE_ENV !== 'production') {
-  console.log('Starting in development mode...');
   bootstrap().then((app) => {
     app.listen(process.env.PORT ?? 4000, () => {
-      console.log(`Application is running on: http://localhost:${process.env.PORT ?? 4000}`);
+      console.log(`Ứng dụng đang chạy tại: http://localhost:${process.env.PORT ?? 4000}`);
     });
   });
-} else {
-  console.log('Starting in production mode (Vercel)...');
 }

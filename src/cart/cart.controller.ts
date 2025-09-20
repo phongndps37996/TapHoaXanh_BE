@@ -16,8 +16,6 @@ export class CartController {
   @UseGuards(JwtGuard)
   async addToCart(@Req() req: any, @Body() dto: CreateCartDto): Promise<any> {
     const userId = req.user.sub;
-    console.log('dto', dto.productId);
-    console.log('userId', userId);
     const result = await this.cartService.addToCart(userId, dto.productId, dto.quantity);
     return result;
   }
@@ -37,7 +35,6 @@ export class CartController {
   @UseGuards(JwtGuard)
   async updateCart(@Req() req: any, @Body() dto: UpdateCartDto): Promise<any> {
     const userId = req.user.sub;
-    console.log('dto', dto.productIds);
     const result = await this.cartService.updateCart(userId, dto.productIds, dto.action, dto.quantity);
     return result;
   }
