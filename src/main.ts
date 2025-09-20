@@ -3,10 +3,20 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { config } from 'dotenv';
 import { ValidationPipe } from '@nestjs/common';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express from 'express';
+
 config();
 
+let cachedApp: any;
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  if (cachedApp) {
+    return cachedApp;
+  }
+
+  const expressApp = express();
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -26,6 +36,7 @@ async function bootstrap() {
     exposedHeaders: ['Authorization'],
     credentials: true,
   });
+
   const config = new DocumentBuilder()
     .setTitle('Tên API')
     .setDescription('Mô tả API')
@@ -55,6 +66,26 @@ async function bootstrap() {
     customSiteTitle: 'API Documentation',
   });
 
-  await app.listen(process.env.PORT ?? 4000);
+  await app.init();
+  cachedApp = expressApp;
+  return expressApp;
 }
-bootstrap();
+
+// Export handler for Vercel
+export default async function handler(req: any, res: any) {
+  const app = await bootstrap();
+  return app(req, res);
+}
+
+// For local development
+console.log('NODE_ENV:', process.env.NODE_ENV);
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Starting in development mode...');
+  bootstrap().then((app) => {
+    app.listen(process.env.PORT ?? 4000, () => {
+      console.log(`Application is running on: http://localhost:${process.env.PORT ?? 4000}`);
+    });
+  });
+} else {
+  console.log('Starting in production mode (Vercel)...');
+}
