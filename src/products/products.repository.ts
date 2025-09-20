@@ -33,7 +33,7 @@ export class ProductRepository extends BaseRepository<Product> {
     return await this.productRepository.delete({ category: { id } });
   }
   async filterProducts(query: ProductFilterDto) {
-    const { search, brand, category, minPrice, maxPrice, page = 1, limit = 10 } = query;
+    const { search, brand, category, minPrice, maxPrice, page = 1, limit = 12 } = query;
     const qb = this.productRepository.createQueryBuilder('product');
 
     if (search) {
@@ -68,10 +68,20 @@ export class ProductRepository extends BaseRepository<Product> {
 
     const [items, total] = await qb.getManyAndCount();
 
+    const categoryCounts = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoin('product.category', 'category')
+      .select('category.id', 'categoryId')
+      .addSelect('category.name', 'categoryName')
+      .addSelect('COUNT(product.id)', 'count')
+      .groupBy('category.id, category.name')
+      .getRawMany();
+
     return {
       data: items,
       meta: {
         total,
+        categoryCounts,
         page,
         limit,
         lastPage: Math.ceil(total / limit),
