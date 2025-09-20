@@ -5,10 +5,8 @@ import { config } from 'dotenv';
 import { ValidationPipe } from '@nestjs/common';
 config();
 
-let app: any;
-
 async function bootstrap() {
-  app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -57,22 +55,6 @@ async function bootstrap() {
     customSiteTitle: 'API Documentation',
   });
 
-  if (process.env.NODE_ENV !== 'production') {
-    await app.listen(process.env.PORT ?? 5000);
-  } else {
-    await app.init();
-  }
+  await app.listen(process.env.PORT ?? 5000);
 }
-
-// Export handler function cho Vercel
-export const handler = async (req: any, res: any) => {
-  if (!app) {
-    await bootstrap();
-  }
-  return app.getHttpAdapter().getInstance()(req, res);
-};
-
-// Cho môi trường development local
-if (process.env.NODE_ENV !== 'production') {
-  bootstrap();
-}
+bootstrap();
