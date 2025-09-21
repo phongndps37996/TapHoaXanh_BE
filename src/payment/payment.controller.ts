@@ -6,10 +6,14 @@ import { PaymentService } from './payment.service';
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  // Trong controller
   @Post('create-payment')
   async createPayment(@Body() createPaymentDto: CreatePaymentDto) {
     return this.paymentService.createPayment(createPaymentDto);
+  }
+
+  @Post('create-payment-cash')
+  async createPaymentWithCash(@Body() createPaymentDto: CreatePaymentDto) {
+    return this.paymentService.createPaymentWithCash(createPaymentDto);
   }
 
   @Get('vnpay-callback')

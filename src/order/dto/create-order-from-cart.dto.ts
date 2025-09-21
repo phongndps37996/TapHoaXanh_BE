@@ -25,12 +25,4 @@ export class CreateOrderFromCartDto {
   @IsOptional()
   @IsNumber()
   voucherId?: number;
-
-  @ApiPropertyOptional({
-    example: 'COD',
-    description: 'Phương thức thanh toán',
-  })
-  @IsOptional()
-  @IsString()
-  paymentId?: string;
 }

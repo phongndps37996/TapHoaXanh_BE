@@ -1,20 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards, Query } from '@nestjs/common';
 import { WishlistService } from './wishlist.service';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { FilterWishListDto } from './dto/filter-wishlist.dto';
 
 @Controller('wishlist')
 export class WishlistController {
   constructor(private readonly wishlistService: WishlistService) {}
 
+  @ApiBearerAuth()
   @Post()
-  create(@Body() createWishlistDto: CreateWishlistDto) {
-    return this.wishlistService.create(createWishlistDto);
+  @UseGuards(JwtGuard)
+  create(@Req() req: any, @Body() createWishlistDto: CreateWishlistDto) {
+    const userId = req.user.sub;
+    return this.wishlistService.create(userId, createWishlistDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtGuard)
   @Get()
-  findAll() {
-    return this.wishlistService.findAll();
+  filterWishList(@Req() req: any, @Query() query: FilterWishListDto) {
+    const userId = req.user.sub;
+    return this.wishlistService.filterWishList(userId, query);
   }
 
   @Get(':id')

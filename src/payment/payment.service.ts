@@ -45,6 +45,23 @@ export class PaymentService {
     return { paymentUrl: url };
   }
 
+  async createPaymentWithCash(createPaymentDto: CreatePaymentDto) {
+    const { orderId } = createPaymentDto;
+    if (!orderId) throw new NotFoundException('Chưa chọn đơn hàng');
+    const orderExist = await this.orderRepository.findById(orderId);
+    if (!orderExist) throw new NotFoundException('Đơn hàng không tồn tại');
+    orderExist.status = 'success';
+    await this.orderRepository.save(orderExist);
+    const payment = this.paymentRepository.create({
+      payment_method: 'COD',
+      status: 'success',
+      amount: orderExist.total_price,
+      order: orderExist,
+    });
+
+    return await this.paymentRepository.save(payment);
+  }
+
   handleReturn(query: any) {
     const verify = this.vnpay.verifyReturnUrl(query);
     if (!verify.isVerified) return { success: false, message: 'Xác thực dữ liệu thất bại' };

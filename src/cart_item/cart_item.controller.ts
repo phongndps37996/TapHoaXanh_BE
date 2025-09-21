@@ -1,10 +1,10 @@
-import { Controller, Get, UseGuards, Post, Delete, Body, Req, Inject } from '@nestjs/common';
-import { ICartItemService } from './interfaces/icart_item-service.interface';
-import { ICartService } from '../cart/interfaces/icart-service.interface';
-import { JwtGuard } from '../auth/guards/jwt.guard';
+import { Body, Controller, Delete, Get, Inject, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { JwtGuard } from '../auth/guards/jwt.guard';
+import { ICartService } from '../cart/interfaces/icart-service.interface';
 import { CreateCartItemDto } from './dto/create-cart_item.dto';
 import { RemoveCartItemsDto } from './dto/remove-cart-items.dto';
+import { ICartItemService } from './interfaces/icart_item-service.interface';
 
 @Controller('cart-item')
 export default class CartItemController {
@@ -21,14 +21,6 @@ export default class CartItemController {
   async findAll() {
     return await this.cartItemService.findAll();
   }
-
-  // @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
-  // @UseGuards(JwtGuard)
-  // @ApiBearerAuth()
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.cartItemService.remove(+id);
-  // }
 
   @ApiOperation({ summary: 'Xóa nhiều sản phẩm khỏi giỏ hàng theo IDs' })
   @UseGuards(JwtGuard)
@@ -47,18 +39,4 @@ export default class CartItemController {
     const cart = await this.cartService.FindOrCreateCart(userId);
     return await this.cartItemService.addOrUpdateCartItem(cart, [dto.productId], dto.quantity, dto.action || 'add');
   }
-
-  // @ApiOperation({ summary: 'Tăng/giảm số lượng sản phẩm trong giỏ hàng (nút +/-)' })
-  // @UseGuards(JwtGuard)
-  // @ApiBearerAuth()
-  // @Put(':id/quantity')
-  // async updateCartItemQuantity(@Param('id') id: string, @Body() dto: UpdateCartItemQuantityDto, @Req() req: any) {
-  //   // Lấy cart item để lấy thông tin cart và product
-  //   const cartItem = await this.cartItemService.findByIds([+id], req.user.sub);
-  //   if (!cartItem || cartItem.length === 0) {
-  //     throw new NotFoundException('Cart item không tồn tại');
-  //   }
-
-  //   return await this.cartItemService.addOrUpdateCartItem(cartItem[0].cart, cartItem[0].product.id, 1, dto.action);
-  // }
 }
