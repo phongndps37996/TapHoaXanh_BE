@@ -4,6 +4,7 @@ import { JwtGuard } from '../auth/guards/jwt.guard';
 import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
+import { PaginatedOrdersDto } from './dto/paginated-orders.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
 import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
@@ -37,6 +38,14 @@ export class OrderController {
   findAllOwned(@Req() req: any) {
     const userId = req.user.sub;
     return this.orderService.findAllOwned(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtGuard)
+  @Get('owned-paginated')
+  findOwnedOrdersPaginated(@Req() req: any, @Query() query: PaginatedOrdersDto) {
+    const userId = req.user.sub;
+    return this.orderService.findOwnedOrdersPaginated(userId, query);
   }
 
   @UseGuards(JwtGuard, IsAdminGuard)

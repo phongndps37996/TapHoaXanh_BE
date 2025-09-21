@@ -13,12 +13,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductFilterDto } from './dto/Filter-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
-import { IsAdminGuard } from '../auth/guards/IsAdmin.guard';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 
 @Controller('products')
 export class ProductsController {
@@ -65,6 +65,12 @@ export class ProductsController {
   @Get('search')
   async Search(@Query() query: ProductFilterDto) {
     return this.productsService.filterProducts(query);
+  }
+
+  // @UseGuards(JwtGuard, IsAdminGuard)
+  @Get('rating')
+  async getProductRatingByOrder(@Query('id') id: number) {
+    return this.productsService.getProductRatingByOrder(id);
   }
 
   @Get(':id')

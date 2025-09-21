@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { IUsersRepository } from '../users/interfaces/iusers-repository.interface';
 import { RatingRepository } from './rating.repository';
 import { CreateRatingDto } from './dto/create-rating.dto';
@@ -15,18 +15,30 @@ export class RatingService {
     private readonly productRepository: ProductRepository,
   ) {}
 
-  async create(createRatingDto: CreateRatingDto): Promise<Rating> {
-    const rating = this.ratingRepository.create(createRatingDto);
-    if (createRatingDto.user_id) {
-      const existUser = await this.userRepository.findById(createRatingDto.user_id);
-      if (!existUser) throw new NotFoundException('Người dùng này không tồn tại');
-      rating.users = existUser;
+  async create(userId: number, createRatingDto: CreateRatingDto): Promise<Rating> {
+    // Validate user exists
+    const existUser = await this.userRepository.findById(userId);
+    if (!existUser) {
+      throw new NotFoundException('Người dùng này không tồn tại');
     }
-    if (createRatingDto.product_id) {
-      const existProduct = await this.productRepository.findById(createRatingDto.product_id);
-      if (!existProduct) throw new NotFoundException('Sản phẩm này không tồn tại');
-      rating.product = existProduct;
+
+    // Validate product exists
+    if (!createRatingDto.product_id) {
+      throw new BadRequestException('Product ID là bắt buộc');
     }
+    const existProduct = await this.productRepository.findById(createRatingDto.product_id);
+    if (!existProduct) {
+      throw new NotFoundException('Sản phẩm này không tồn tại');
+    }
+
+    // Create rating with user from JWT token
+    const rating = this.ratingRepository.create({
+      comment: createRatingDto.comment,
+      rating: createRatingDto.rating,
+      users: existUser,
+      product: existProduct,
+    });
+
     return await this.ratingRepository.save(rating);
   }
 
@@ -43,21 +55,24 @@ export class RatingService {
     if (!rating) {
       throw new NotFoundException(`Rating with ID ${id} not found`);
     }
-    const newRating = this.ratingRepository.create({
-      ...rating,
-      ...updateRatingDto,
-    });
-    if (updateRatingDto.user_id) {
-      const existUser = await this.userRepository.findById(updateRatingDto.user_id);
-      if (!existUser) throw new NotFoundException('Người dùng này không tồn tại');
-      newRating.users = existUser;
-    }
+    // Validate product exists if product_id is provided
     if (updateRatingDto.product_id) {
       const existProduct = await this.productRepository.findById(updateRatingDto.product_id);
-      if (!existProduct) throw new NotFoundException('Sản phẩm này không tồn tại');
-      newRating.product = existProduct;
+      if (!existProduct) {
+        throw new NotFoundException('Sản phẩm này không tồn tại');
+      }
+      rating.product = existProduct;
     }
-    return await this.ratingRepository.save(newRating);
+
+    // Update only allowed fields (comment and rating)
+    if (updateRatingDto.comment !== undefined) {
+      rating.comment = updateRatingDto.comment;
+    }
+    if (updateRatingDto.rating !== undefined) {
+      rating.rating = updateRatingDto.rating;
+    }
+
+    return await this.ratingRepository.save(rating);
   }
 
   async remove(id: number) {

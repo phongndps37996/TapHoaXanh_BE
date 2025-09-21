@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { BaseRepository } from '../database/abstract.repository';
 import { FilterOrderDto } from './dto/filter-order.dto';
+import { PaginatedOrdersDto } from './dto/paginated-orders.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
 import { PaymentStatus } from './enums/payment-status.enum';
@@ -27,6 +28,35 @@ export class OrderRepository extends BaseRepository<Order> {
       relations: ['voucher', 'orderItem', 'orderItem.product', 'payments'],
       select: ['id', 'order_code', 'status', 'total_price', 'createdAt'],
     });
+  }
+
+  async findOwnedOrdersPaginated(userId: number, query: PaginatedOrdersDto) {
+    const { page = 1, limit = 10 } = query;
+
+    const qb = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.voucher', 'voucher')
+      .leftJoinAndSelect('order.orderItem', 'orderItem')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('order.payments', 'payments')
+      .addSelect("CASE WHEN order.status = 'pending' THEN 0 ELSE 1 END", 'priority')
+      .where('order.user.id = :userId', { userId })
+      .orderBy('priority', 'ASC')
+      .addOrderBy('order.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [items, total] = await qb.getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
   }
 
   async filterAllOrder(query: FilterOrderDto) {
@@ -102,7 +132,7 @@ export class OrderRepository extends BaseRepository<Order> {
   async findOne(id: number): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id },
-      relations: ['users', 'voucher', 'orderItem'],
+      relations: ['user', 'voucher', 'orderItem', 'orderItem.product', 'payments'],
     });
     if (!order) throw new NotFoundException(`Order with id ${id} not found`);
     return order;
@@ -197,8 +227,7 @@ export class OrderRepository extends BaseRepository<Order> {
       .createQueryBuilder('o')
       .innerJoin('o.user', 'u')
       .innerJoin('o.orderItem', 'oi')
-      .innerJoin('oi.productVariant', 'pv')
-      .innerJoin('pv.product', 'p')
+      .innerJoin('oi.product', 'p')
       .select([
         'p.name AS productName',
         'oi.unit_price AS unitPrice',

@@ -12,9 +12,7 @@ export class VoucherRepository extends BaseRepository<Voucher> {
     super(voucherRepository);
   }
   async findAll() {
-    return await this.voucherRepository.find({
-      select: ['id', 'code', 'max_discount', 'min_order_value', 'quantity', 'start_date', 'end_date'],
-    });
+    return await this.voucherRepository.find();
   }
 
   async filterAllVoucher(query: FilterVoucherDto) {

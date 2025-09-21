@@ -24,15 +24,6 @@ export class CreateRatingDto {
 
   @IsOptional()
   @ApiProperty({
-    description: 'ID của người dùng đã đánh giá',
-    example: 1,
-  })
-  @IsNotEmpty()
-  @IsInt()
-  user_id?: number;
-
-  @IsOptional()
-  @ApiProperty({
     description: 'ID sản phẩm được đánh giá',
     example: 42,
   })

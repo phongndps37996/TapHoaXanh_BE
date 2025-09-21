@@ -1,17 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
 import { RatingService } from './rating.service';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { UpdateRatingDto } from './dto/update-rating.dto';
 import { RatingFilterDto } from './dto/Filter-rating.dto';
 import { Rating } from './entities/rating.entity';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('rating')
 export class RatingController {
   constructor(private readonly ratingService: RatingService) {}
 
+  @ApiBearerAuth()
   @Post()
-  create(@Body() createRatingDto: CreateRatingDto) {
-    return this.ratingService.create(createRatingDto);
+  @UseGuards(JwtGuard)
+  create(@Req() req: any, @Body() createRatingDto: CreateRatingDto) {
+    const userId = req.user.sub;
+    return this.ratingService.create(userId, createRatingDto);
   }
 
   @Get()

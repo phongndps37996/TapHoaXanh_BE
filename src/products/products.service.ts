@@ -152,4 +152,8 @@ export class ProductsService {
   async getAllProductNullCate() {
     return await this.productRepository.getAllProductNullCate();
   }
+
+  async getProductRatingByOrder(orderId: number) {
+    return await this.productRepository.getProductWithRatingByOrder(orderId);
+  }
 }

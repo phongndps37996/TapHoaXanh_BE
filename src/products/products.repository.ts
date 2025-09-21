@@ -130,4 +130,21 @@ export class ProductRepository extends BaseRepository<Product> {
   async getAllProductNullCate(): Promise<Product[]> {
     return await this.productRepository.createQueryBuilder('product').where('product.categoryId IS NULL').getMany();
   }
+
+  async getProductWithRatingByOrder(orderId: number) {
+    return await this.productRepository
+      .createQueryBuilder('p')
+      .select([
+        'p.id AS productId',
+        'p.name AS productName',
+        'oi.order_id AS orderId',
+        'r.comment AS comment',
+        'r.rating AS rating',
+      ])
+      .innerJoin('p.orderItems', 'oi')
+      .innerJoin('oi.order', 'o')
+      .leftJoin('p.rating', 'r', 'r.user_id = o.userId AND r.createdAt >= o.createdAt')
+      .where('oi.order_id = :orderId', { orderId })
+      .getRawMany();
+  }
 }

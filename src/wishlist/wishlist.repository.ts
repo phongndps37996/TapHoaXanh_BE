@@ -18,19 +18,13 @@ export class WishListRepository extends BaseRepository<Wishlist> {
     const qb = this.wishListRepository
       .createQueryBuilder('wishlist')
       .innerJoin('wishlist.users', 'u')
-      .innerJoin('wishlist.product', 'p')
+      .innerJoinAndSelect('wishlist.product', 'product')
       .where('u.id = :userId', { userId })
-      .select(['u.id AS userId', 'u.name AS userName', 'p.*'])
+      .orderBy('wishlist.id', 'ASC')
       .skip((page - 1) * limit)
       .take(limit);
 
-    const items = await qb.getRawMany();
-
-    const total = await this.wishListRepository
-      .createQueryBuilder('wishlist')
-      .innerJoin('wishlist.users', 'u')
-      .where('u.id = :userId', { userId })
-      .getCount();
+    const [items, total] = await qb.getManyAndCount();
 
     return {
       data: items,
