@@ -19,4 +19,11 @@ export class PaymentRepository extends BaseRepository<Payment> {
       relations: ['order'],
     });
   }
+
+  async findByOrderId(orderId: number) {
+    return this.paymentRepository.findOne({
+      where: { order: { id: orderId } },
+      relations: ['order'],
+    });
+  }
 }

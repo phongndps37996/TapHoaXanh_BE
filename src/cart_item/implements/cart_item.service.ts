@@ -195,10 +195,11 @@ export class CartItemService implements ICartItemService {
 
   async removeByIds(ids: number[], userId: number): Promise<CartItem[]> {
     // Xóa nhiều cart items theo IDs và đảm bảo thuộc về user
-    const cartItems = await this._cartItemRepository.removeByIds(ids, userId);
-    if (cartItems.length === 0) {
-      throw new NotFoundException('Cart item không tồn tại');
+    if (ids.length === 0) {
+      throw new NotFoundException('Không có cart item để xóa');
     }
+    const cartItems = await this._cartItemRepository.removeByIds(ids, userId);
+
     return cartItems;
   }
 

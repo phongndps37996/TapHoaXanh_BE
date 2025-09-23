@@ -4,8 +4,10 @@ import { Product } from '../products/entities/product.entity';
 import { OrderRepository } from '../order/order.repository';
 import { IpnFailChecksum, IpnInvalidAmount, IpnOrderNotFound, IpnSuccess, ProductCode, VNPay, VnpLocale } from 'vnpay';
 import { CreatePaymentDto } from './dto/payment.dto';
+import { RetryPaymentDto } from './dto/retry-payment.dto';
 import { PaymentRepository } from './payment.repository';
 import { v4 as uuidv4 } from 'uuid';
+import { OrderStatus } from 'src/order/enums/order-status.enum';
 
 @Injectable()
 export class PaymentService {
@@ -45,16 +47,60 @@ export class PaymentService {
     return { paymentUrl: url };
   }
 
+  async retryPayment(retryPaymentDto: RetryPaymentDto) {
+    const { orderId } = retryPaymentDto;
+
+    // 1. Tìm order
+    const orderExist = await this.orderRepository.findById(orderId);
+    if (!orderExist) throw new NotFoundException('Đơn hàng không tồn tại');
+
+    // 2. Kiểm tra order status
+    if (orderExist.status !== OrderStatus.PENDING) {
+      throw new NotFoundException('Chỉ có thể retry payment cho order đang pending');
+    }
+
+    // 3. Tìm payment hiện tại
+    const currentPayment = await this.paymentRepository.findByOrderId(orderId);
+    if (!currentPayment) {
+      throw new NotFoundException('Không tìm thấy payment cho order này');
+    }
+
+    // 4. Kiểm tra payment status
+    if (currentPayment.status !== 'failed' && currentPayment.status !== 'pending') {
+      throw new NotFoundException('Chỉ có thể retry payment đã failed hoặc pending');
+    }
+
+    // 5. Tạo txnRef mới bằng UUID (giống như createPayment)
+    const txnRef = uuidv4();
+
+    // 6. Tạo VNPay URL mới (sử dụng lại logic từ createPayment)
+    const url = await this.vnpay.buildPaymentUrl({
+      vnp_Amount: orderExist.total_price,
+      vnp_TxnRef: txnRef,
+      vnp_OrderInfo: `Thanh toan don hang ${orderExist.order_code}`,
+      vnp_OrderType: ProductCode.Other,
+      vnp_ReturnUrl: process.env.VNP_RETURN_URL as string,
+      vnp_Locale: VnpLocale.VN,
+      vnp_IpAddr: '127.0.0.1',
+    });
+
+    // 7. Reset payment với txn_ref mới
+    currentPayment.status = 'pending';
+    currentPayment.txn_ref = txnRef;
+    await this.paymentRepository.save(currentPayment);
+
+    return { paymentUrl: url };
+  }
+
   async createPaymentWithCash(createPaymentDto: CreatePaymentDto) {
     const { orderId } = createPaymentDto;
     if (!orderId) throw new NotFoundException('Chưa chọn đơn hàng');
     const orderExist = await this.orderRepository.findById(orderId);
     if (!orderExist) throw new NotFoundException('Đơn hàng không tồn tại');
-    orderExist.status = 'success';
     await this.orderRepository.save(orderExist);
     const payment = this.paymentRepository.create({
       payment_method: 'COD',
-      status: 'success',
+      status: 'pending',
       amount: orderExist.total_price,
       order: orderExist,
     });
@@ -100,9 +146,11 @@ export class PaymentService {
     }
 
     // Cập nhật trạng thái đơn hàng
-    if (order.status !== 'success') {
-      order.status = 'success';
+    if (order.status !== OrderStatus.SUCCESS) {
+      order.status = OrderStatus.SUCCESS;
       await this.orderRepository.save(order);
+      // Tăng số lượng sản phẩm khi payment thành công
+      await this.increaseInventoryOnSuccess(order.id);
     }
 
     return IpnSuccess;
@@ -119,8 +167,10 @@ export class PaymentService {
     // Cập nhật status dựa vào response_code
     if (queryParams.vnp_ResponseCode === '00') {
       payment.status = 'success';
-      // Có thể cập nhật status order thành 'paid' ở đây
-      await this.handleIpn(queryParams);
+      // Tăng số lượng sản phẩm khi payment thành công
+      if (payment.order?.id) {
+        await this.increaseInventoryOnSuccess(payment.order.id);
+      }
     } else {
       payment.status = 'failed';
       // Hoàn kho khi thất bại
@@ -150,6 +200,28 @@ export class PaymentService {
         const product = item.product;
         if (!product) continue;
         product.quantity += item.quantity;
+        await queryRunner.manager.getRepository(Product).save(product);
+      }
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async increaseInventoryOnSuccess(orderId: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const order = await this.orderRepository.findWithItemsAndProducts(orderId);
+      for (const item of order.orderItem) {
+        const product = item.product;
+        if (!product) continue;
+        // Tăng số lượng sản phẩm lên 1 cho mỗi sản phẩm trong đơn hàng
+        product.purchase += 1;
         await queryRunner.manager.getRepository(Product).save(product);
       }
       await queryRunner.commitTransaction();

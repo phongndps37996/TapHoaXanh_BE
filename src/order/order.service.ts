@@ -8,14 +8,19 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { PaginatedOrdersDto } from './dto/paginated-orders.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { ReorderDto } from './dto/reorder.dto';
 import { Order } from './entities/order.entity';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { OrderStatus } from './enums/order-status.enum';
 import { DataSource } from 'typeorm';
 import { OrderRepository } from './order.repository';
 import { Product } from '../products/entities/product.entity';
 import { OrderItem } from '../order_item/entities/order_item.entity';
 import { Voucher } from '../voucher/entities/voucher.entity';
 import { VoucherType } from '../voucher/enums/voucher-type.enum';
+import { Payment } from '../payment/entities/payment.entity';
+import { Address } from '../address/entities/address.entity';
 
 @Injectable()
 export class OrderService {
@@ -39,7 +44,7 @@ export class OrderService {
     const order = this.orderRepository.create({
       ...createOrderDto,
       order_code: orderCode,
-      status: PaymentStatus.PENDING,
+      status: OrderStatus.PENDING,
     });
     const findUser = await this.userRepository.findById(userId);
     if (!findUser) throw new NotFoundException('User này không tồn tại');
@@ -71,6 +76,11 @@ export class OrderService {
 
   async findOne(id: number): Promise<Order> {
     return this.orderRepository.findOne(id);
+  }
+
+  // Lấy địa chỉ đã chọn trong đơn hàng
+  async getOrderAddress(orderId: number): Promise<any> {
+    return this.orderRepository.getOrderAddress(orderId);
   }
 
   async update(id: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
@@ -113,7 +123,7 @@ export class OrderService {
         }
       }
 
-      const updated = await this.orderRepository.updatePayment(orderId, { status: toStatus });
+      const updated = await this.orderRepository.updatePayment(orderId, { status: toStatus as any });
       await queryRunner.commitTransaction();
       return updated;
     } catch (e) {
@@ -187,9 +197,20 @@ export class OrderService {
       // 5. Tạo order items
       await this.createOrderItems(preparedItems, savedOrder, queryRunner);
 
+      // 6. Cập nhật address nếu có
+      if (createOrderDto.addressId) {
+        const address = await queryRunner.manager.getRepository(Address).findOne({
+          where: { id: createOrderDto.addressId, users: { id: userId } },
+        });
+        if (address) {
+          savedOrder.address = address;
+          await queryRunner.manager.getRepository(Order).save(savedOrder);
+        }
+      }
+
       await queryRunner.commitTransaction();
 
-      // 6. Xóa cart items (ngoài transaction)
+      // 7. Xóa cart items (ngoài transaction)
       await this.cartItemService.removeByIds(createOrderDto.cartItemIds, userId);
 
       return savedOrder;
@@ -245,7 +266,7 @@ export class OrderService {
       total_price: totalPrice,
       note: createOrderDto.note,
       order_code: this.generateOrderCode(),
-      status: PaymentStatus.PENDING,
+      status: OrderStatus.PENDING,
     });
 
     const user = await this.userRepository.findById(userId);
@@ -253,6 +274,17 @@ export class OrderService {
       throw new NotFoundException('User này không tồn tại');
     }
     order.user = user;
+
+    // Thêm address nếu có
+    if (createOrderDto.addressId) {
+      const address = await this.dataSource.getRepository(Address).findOne({
+        where: { id: createOrderDto.addressId, users: { id: userId } },
+      });
+      if (!address) {
+        throw new NotFoundException('Địa chỉ không tồn tại hoặc không thuộc về user này');
+      }
+      order.address = address;
+    }
 
     return order;
   }
@@ -341,5 +373,225 @@ export class OrderService {
 
   async getOrderDetailByCode(orderCode: string) {
     return await this.orderRepository.getOrderDetailByCode(orderCode);
+  }
+
+  // Cập nhật trạng thái đơn hàng (Admin)
+  async updateOrderStatus(orderId: number, updateStatusDto: UpdateOrderStatusDto): Promise<Order> {
+    const order = await this.orderRepository.findWithItemsAndProducts(orderId);
+    if (!order) {
+      throw new NotFoundException(`Đơn hàng với ID ${orderId} không tồn tại`);
+    }
+
+    // Validate trạng thái hiện tại và trạng thái mới
+    this.validateStatusTransition(order.status, updateStatusDto.status);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Cập nhật trạng thái đơn hàng
+      order.status = updateStatusDto.status;
+      if (updateStatusDto.note) {
+        order.note = updateStatusDto.note;
+      }
+
+      const updatedOrder = await queryRunner.manager.getRepository(Order).save(order);
+
+      // Nếu đơn hàng chuyển sang SUCCESS và có payment COD, cập nhật payment status thành success
+      if (updateStatusDto.status === OrderStatus.SUCCESS) {
+        const codPayment = order.payments?.find((payment) => payment.payment_method?.toLowerCase() === 'cod');
+        if (codPayment) {
+          codPayment.status = 'success';
+          await queryRunner.manager.getRepository(Payment).save(codPayment);
+          // Tăng số lượng sản phẩm khi đơn hàng COD thành công
+          await this.increaseInventoryOnSuccess(orderId);
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      return updatedOrder;
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // Hủy đơn hàng (User) - chỉ được hủy khi trạng thái là PENDING
+  async cancelOrder(orderId: number, userId: number): Promise<Order> {
+    const order = await this.orderRepository.findOne(orderId);
+    if (!order) {
+      throw new NotFoundException(`Đơn hàng với ID ${orderId} không tồn tại`);
+    }
+
+    // Kiểm tra quyền sở hữu
+    if (order.user.id !== userId) {
+      throw new BadRequestException('Bạn không có quyền hủy đơn hàng này');
+    }
+
+    // Chỉ được hủy khi trạng thái là PENDING
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Chỉ có thể hủy đơn hàng khi đang ở trạng thái chờ xử lý');
+    }
+
+    // Hoàn kho khi hủy đơn
+    await this.restoreInventory(orderId);
+
+    order.status = OrderStatus.CANCELLED;
+    return this.orderRepository.save(order);
+  }
+
+  // Validate việc chuyển đổi trạng thái
+  private validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus): void {
+    const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+      [OrderStatus.CONFIRMED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+      [OrderStatus.DELIVERED]: [OrderStatus.SUCCESS],
+      [OrderStatus.SUCCESS]: [], // Không thể chuyển từ SUCCESS sang trạng thái khác
+      [OrderStatus.CANCELLED]: [], // Không thể chuyển từ CANCELLED sang trạng thái khác
+    };
+
+    if (!validTransitions[currentStatus].includes(newStatus)) {
+      throw new BadRequestException(`Không thể chuyển từ trạng thái ${currentStatus} sang ${newStatus}`);
+    }
+  }
+
+  // Hoàn kho khi hủy đơn hàng
+  private async restoreInventory(orderId: number): Promise<void> {
+    const order = await this.orderRepository.findWithItemsAndProducts(orderId);
+
+    for (const item of order.orderItem) {
+      const product = item.product;
+      if (!product) continue;
+
+      product.quantity += item.quantity;
+      await this.dataSource.getRepository(Product).save(product);
+    }
+  }
+
+  // Mua lại đơn hàng (Reorder)
+  async reorderOrder(orderId: number, reorderDto: ReorderDto, userId: number): Promise<Order> {
+    // 1. Lấy thông tin đơn hàng cũ
+    const originalOrder = await this.orderRepository.findWithItemsAndProducts(orderId);
+    if (!originalOrder) {
+      throw new NotFoundException(`Đơn hàng với ID ${orderId} không tồn tại`);
+    }
+
+    // 2. Kiểm tra quyền sở hữu
+    if (originalOrder.user.id !== userId) {
+      throw new BadRequestException('Bạn không có quyền mua lại đơn hàng này');
+    }
+
+    // 3. Kiểm tra trạng thái đơn hàng phải là SUCCESS
+    if (originalOrder.status !== OrderStatus.SUCCESS) {
+      throw new BadRequestException('Chỉ có thể mua lại đơn hàng đã hoàn thành');
+    }
+
+    // 4. Kiểm tra payment status phải là success
+    const hasSuccessfulPayment = originalOrder.payments?.some((payment) => payment.status === 'success');
+    if (!hasSuccessfulPayment) {
+      throw new BadRequestException('Chỉ có thể mua lại đơn hàng đã thanh toán thành công');
+    }
+
+    // 5. Kiểm tra sản phẩm còn tồn kho
+    for (const item of originalOrder.orderItem) {
+      const product = item.product;
+      if (!product) {
+        throw new BadRequestException(`Sản phẩm trong đơn hàng cũ không tồn tại`);
+      }
+      if (product.quantity < item.quantity) {
+        throw new BadRequestException(
+          `Sản phẩm ${product.name} không đủ tồn kho. Còn: ${product.quantity}, yêu cầu: ${item.quantity}`,
+        );
+      }
+    }
+
+    // 6. Tạo đơn hàng mới từ đơn hàng cũ
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 6.1. Tạo order mới
+      const newOrder = this.orderRepository.create({
+        total_price: originalOrder.total_price,
+        note: reorderDto.note || `Mua lại đơn hàng ${originalOrder.order_code}`,
+        order_code: this.generateOrderCode(),
+        status: OrderStatus.PENDING,
+      });
+
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new NotFoundException('User này không tồn tại');
+      }
+      newOrder.user = user;
+
+      // 6.2. Trừ kho và tạo order items
+      const preparedItems: { quantity: number; unit_price: number; product: Product }[] = [];
+      for (const item of originalOrder.orderItem) {
+        const product = item.product;
+        if (!product) continue;
+
+        // Trừ kho
+        product.quantity -= item.quantity;
+        await queryRunner.manager.getRepository(Product).save(product);
+
+        preparedItems.push({
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          product: product,
+        });
+      }
+
+      // 6.3. Lưu order mới
+      const savedOrder = await queryRunner.manager.getRepository(Order).save(newOrder as any);
+
+      // 6.4. Tạo order items
+      for (const item of preparedItems) {
+        const orderItem = queryRunner.manager.create(OrderItem, {
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          order: savedOrder,
+          product: item.product,
+        });
+        await queryRunner.manager.save(orderItem);
+      }
+
+      await queryRunner.commitTransaction();
+      return savedOrder;
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async getDailyRevenue(start_date?: string, end_date?: string): Promise<{ date: string; revenue: number }[]> {
+    return this.orderRepository.getDailyRevenue(start_date, end_date);
+  }
+
+  private async increaseInventoryOnSuccess(orderId: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const order = await this.orderRepository.findWithItemsAndProducts(orderId);
+      for (const item of order.orderItem) {
+        const product = item.product;
+        if (!product) continue;
+        // Tăng số lượng purchase lên 1 cho mỗi sản phẩm trong đơn hàng
+        product.purchase += 1;
+        await queryRunner.manager.getRepository(Product).save(product);
+      }
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

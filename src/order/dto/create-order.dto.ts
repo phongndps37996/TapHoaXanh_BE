@@ -11,4 +11,9 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   note?: string;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID của địa chỉ giao hàng' })
+  @IsNumber()
+  @IsOptional()
+  addressId?: number;
 }

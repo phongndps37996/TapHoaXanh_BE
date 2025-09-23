@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { ICartService } from '../cart/interfaces/icart-service.interface';
@@ -28,6 +28,14 @@ export default class CartItemController {
   @Delete()
   async removeByIds(@Body() dto: RemoveCartItemsDto, @Req() req: any) {
     return this.cartItemService.removeByIds(dto.ids, req.user.sub);
+  }
+
+  @ApiOperation({ summary: 'Xóa một sản phẩm khỏi giỏ hàng theo ID' })
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @Delete(':id')
+  async removeById(@Param('id') id: string) {
+    return this.cartItemService.remove(+id);
   }
 
   @ApiOperation({ summary: 'Thêm hoặc cập nhật sản phẩm trong giỏ hàng' })

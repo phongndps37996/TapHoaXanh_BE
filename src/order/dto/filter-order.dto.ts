@@ -33,4 +33,20 @@ export class FilterOrderDto {
   @IsOptional()
   @ApiProperty({ required: false })
   year?: string;
+
+  @IsOptional()
+  @ApiProperty({
+    required: false,
+    description: 'Trạng thái thanh toán VNPay',
+    example: 'pending',
+  })
+  payment_status?: string;
+
+  @IsOptional()
+  @ApiProperty({
+    required: false,
+    description: 'Phương thức thanh toán',
+    example: 'vnpay',
+  })
+  payment_method?: string;
 }

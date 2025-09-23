@@ -25,4 +25,11 @@ export class CreateOrderFromCartDto {
   @IsOptional()
   @IsNumber()
   voucherId?: number;
+
+  @ApiProperty({
+    example: 1,
+    description: 'ID của địa chỉ giao hàng',
+  })
+  @IsNumber()
+  addressId!: number;
 }
