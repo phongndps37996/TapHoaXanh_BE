@@ -132,7 +132,7 @@ export class UsersController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: /^image/ }),
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
         ],
         errorHttpStatusCode: 400,
       }),
@@ -202,7 +202,7 @@ export class UsersController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: /^image/ }),
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
         ],
         errorHttpStatusCode: 400,
       }),
