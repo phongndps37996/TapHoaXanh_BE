@@ -104,7 +104,7 @@ export class AuthService implements IAuthService {
     if (!user) throw new NotFoundException('Email không tồn tại'); //nếu không tìm thấy người dùng thì ném lỗi
     if (user.isEmailVerified) throw new BadRequestException('Email đã được xác thực'); //nếu email đã được xác thực thì ném lỗi
 
-    const verificationToken = await this.generateActionToken(user, TokenActionType.VERIFY_EMAIL, '5m'); //tạo token xác thực
+    const verificationToken = await this.generateActionToken(user, TokenActionType.VERIFY_EMAIL, '15m'); //tạo token xác thực
 
     await this.sendVerificationEmailWithToken(email, verificationToken);
 
