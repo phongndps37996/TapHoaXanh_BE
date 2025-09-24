@@ -73,6 +73,7 @@ export class UsersService implements IUsersService {
   }
 
   async updateAvatar(userId: number, file: Express.Multer.File): Promise<Users | null> {
+    console.log('updateAvatar');
     // Kiểm tra user có tồn tại không
     const user = await this.findById(userId);
     if (!user) {
@@ -80,6 +81,7 @@ export class UsersService implements IUsersService {
     }
 
     try {
+      console.log('updateAvatar try');
       // Upload file lên Cloudinary
       const cloudinaryResult = await this.cloudinaryService.uploadFile(file, {
         fileType: 'avatar',
@@ -90,6 +92,7 @@ export class UsersService implements IUsersService {
 
       return updatedUser;
     } catch (error) {
+      console.log('updateAvatar catch');
       throw new BadRequestException(`Lỗi upload avatar: ${(error as Error).message}`);
     }
   }

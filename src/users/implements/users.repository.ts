@@ -70,6 +70,7 @@ export class UsersRepository implements IUsersRepository {
   }
 
   async updateAvatar(id: number, imageUrl: string): Promise<Users | null> {
+    console.log('updateAvatar');
     await this.usersRepository.update({ id }, { image: imageUrl });
     return await this.findById(id);
   }
@@ -81,6 +82,6 @@ export class UsersRepository implements IUsersRepository {
   }
 
   async updateEmailVerification(id: number, isVerified: boolean): Promise<void> {
-    await this.usersRepository.update({ id }, { isEmailVerified: isVerified }); 
+    await this.usersRepository.update({ id }, { isEmailVerified: isVerified });
   }
 }
