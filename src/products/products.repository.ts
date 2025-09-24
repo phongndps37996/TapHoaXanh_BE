@@ -33,8 +33,8 @@ export class ProductRepository extends BaseRepository<Product> {
     return await this.productRepository.delete({ category: { id } });
   }
   async filterProducts(query: ProductFilterDto) {
-    const { search, brand, category, minPrice, maxPrice, page = 1, limit = 12 } = query;
-    const qb = this.productRepository.createQueryBuilder('product');
+    const { search, brand, category, categoryId, minPrice, maxPrice, page = 1, limit = 12 } = query;
+    const qb = this.productRepository.createQueryBuilder('product').leftJoin('product.category', 'category');
 
     if (search) {
       qb.andWhere('(LOWER(product.name) LIKE LOWER(:search) OR LOWER(product.barcode) LIKE LOWER(:search))', {
@@ -42,15 +42,21 @@ export class ProductRepository extends BaseRepository<Product> {
       });
     }
 
+    if (category) {
+      qb.andWhere('LOWER(category.name) LIKE LOWER(:category)', {
+        category: `%${category}%`,
+      });
+    }
+
     if (brand) {
       qb.andWhere('product.brand = :brand', { brand });
     }
 
-    if (category !== undefined) {
-      if (category === null) {
+    if (categoryId !== undefined) {
+      if (categoryId === null) {
         qb.andWhere('product.category_id IS NULL');
       } else {
-        qb.andWhere('product.category = :category', { category });
+        qb.andWhere('product.category = :categoryId', { categoryId });
       }
     }
 

@@ -22,7 +22,11 @@ export class ProductFilterDto {
     if (value === '') return undefined;
     return Number(value);
   })
-  category?: number | null;
+  categoryId?: number | null;
+
+  @IsOptional()
+  @ApiProperty({ required: false })
+  category?: string;
 
   @IsOptional()
   @ApiProperty({ required: false })
